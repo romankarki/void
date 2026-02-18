@@ -19,6 +19,9 @@ segments = ["path", "time"]
 [history]
 path = "~/history"
 max_size = 42
+[palette]
+path_fg = "#ffffff"
+path_bg = "#112233"
 [alias]
 ls = "ls -la"
 `
@@ -38,5 +41,8 @@ ls = "ls -la"
 	}
 	if cfg.Alias["ls"] != "ls -la" {
 		t.Fatalf("alias not parsed")
+	}
+	if cfg.Palette["path_bg"] != "#112233" {
+		t.Fatalf("palette not parsed")
 	}
 }

@@ -167,6 +167,8 @@ func decodeSimpleTOML(path string, cfg *Config) error {
 			}
 		case "alias":
 			cfg.Alias[key] = strings.Trim(value, "\"")
+		case "palette":
+			cfg.Palette[key] = strings.Trim(value, "\"")
 		}
 	}
 	return s.Err()

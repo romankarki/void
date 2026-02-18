@@ -1,3 +1,14 @@
 [prompt]
 symbol = "❯"
 segments = ["user", "path", "time", "exit_code"]
+
+[palette]
+user_fg = "#0b1020"
+user_bg = "#00f5ff"
+path_fg = "#0b1020"
+path_bg = "#ff4df0"
+time_fg = "#0b1020"
+time_bg = "#f9ff00"
+exit_code_fg = "#ffffff"
+exit_code_bg = "#ff0055"
+symbol_fg = "#00f5ff"

@@ -38,7 +38,7 @@ func (a *App) Run() error {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		wd, _ := os.Getwd()
-		fmt.Print(prompt.Render(a.cfg.Prompt.Segments, a.cfg.Prompt.Symbol, prompt.Context{LastExitCode: a.lastCode, WorkDir: wd}))
+		fmt.Print(prompt.Render(a.cfg.Prompt.Segments, a.cfg.Prompt.Symbol, a.cfg.Palette, prompt.Context{LastExitCode: a.lastCode, WorkDir: wd}))
 		if !scanner.Scan() {
 			_ = a.history.Save()
 			return nil
@@ -109,7 +109,12 @@ func (a *App) runMeta(line string) int {
 			fmt.Fprintf(os.Stderr, "reload failed: %v\n", err)
 			return 1
 		}
-		a.cfg = cfg
+		merged, err := theme.ApplyPreset(cfg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "reload failed: %v\n", err)
+			return 1
+		}
+		a.cfg = merged
 		fmt.Println("configuration reloaded")
 		return 0
 	default:
