@@ -2,10 +2,9 @@
 preset = ""
 
 [shell]
-# On Windows use cmd.exe with args ["/C"] to run each command.
-# On Unix-like environments this defaults to sh.
-executable = "sh"
-args = ["-c"]
+executable = "cmd.exe"
+args = ["/C"]
+preset = "minimal"
 
 [prompt]
 symbol = "❯"
