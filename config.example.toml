@@ -1,0 +1,20 @@
+# Void configuration
+preset = ""
+
+[shell]
+# On Windows use cmd.exe with args ["/C"] to run each command.
+# On Unix-like environments this defaults to sh.
+executable = "sh"
+args = ["-c"]
+
+[prompt]
+symbol = "❯"
+segments = ["user", "path", "time", "exit_code"]
+
+[history]
+path = "~/.void/history"
+max_size = 5000
+
+[alias]
+ll = "ls -la"
+gst = "git status"
