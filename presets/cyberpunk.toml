@@ -1,0 +1,3 @@
+[prompt]
+symbol = "❯"
+segments = ["user", "path", "time", "exit_code"]
