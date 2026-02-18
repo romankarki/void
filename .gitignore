@@ -1,0 +1,33 @@
+# Binaries
+void
+void.exe
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output directories
+bin/
+dist/
+out/
+
+# Go test / coverage artifacts
+*.test
+*.out
+coverage.out
+*.coverprofile
+
+# Logs and runtime temp files
+*.log
+*.tmp
+
+# Local env/config files
+.env
+.env.*
+
+# Editor / OS artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
