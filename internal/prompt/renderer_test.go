@@ -66,7 +66,12 @@ func TestRenderPathParts(t *testing.T) {
 
 func TestPathGradientFallbacks(t *testing.T) {
 	if got := pathGradient(map[string]string{"path_bg": "#101010"}); len(got) != defaultGradientSteps {
-		t.Fatalf("expected %d derived colors from path_bg, got %d", defaultGradientSteps, len(got))
+		t.Fatalf("expected %d colors from path_bg pool, got %d", defaultGradientSteps, len(got))
+	} else {
+		assertUniqueColors(t, got)
+		if !containsColor(got, "#101010") {
+			t.Fatalf("expected configured path_bg to be included in palette, got %#v", got)
+		}
 	}
 
 	palette := map[string]string{"path_bg_1": "#111111", "path_bg_2": "#222222"}
@@ -78,6 +83,25 @@ func TestPathGradientFallbacks(t *testing.T) {
 	got = pathGradient(map[string]string{})
 	if len(got) != defaultGradientSteps {
 		t.Fatalf("expected %d default gradient colors, got %d", defaultGradientSteps, len(got))
+	}
+	assertUniqueColors(t, got)
+}
+
+func TestRenderPathSegmentsUsesSameForegroundColor(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	palette := map[string]string{
+		"path_fg": "#ffd166",
+		"path_bg": "#1f2937",
+	}
+	segments := renderPathSegments("/Users/Asus/Desktop", palette)
+	if len(segments) < 3 {
+		t.Fatalf("expected multiple path segments, got %d", len(segments))
+	}
+	if segments[0].fg != "#ffd166" {
+		t.Fatalf("expected first segment to keep base path_fg, got %q", segments[0].fg)
+	}
+	if segments[1].fg != segments[0].fg {
+		t.Fatalf("expected path segments to use the same foreground color, got %#v", segments)
 	}
 }
 
@@ -98,13 +122,14 @@ func TestRenderPathPartsCapsBreadcrumbs(t *testing.T) {
 	}
 }
 
-func TestPathGradientDerivesShadesFromPathBG(t *testing.T) {
+func TestPathGradientUsesVariedColorsFromPool(t *testing.T) {
 	got := pathGradient(map[string]string{"path_bg": "#ff00aa"})
 	if len(got) != defaultGradientSteps {
-		t.Fatalf("expected %d derived colors, got %d", defaultGradientSteps, len(got))
+		t.Fatalf("expected %d colors, got %d", defaultGradientSteps, len(got))
 	}
-	if got[0] == got[len(got)-1] {
-		t.Fatalf("expected gradient variation, got %#v", got)
+	assertUniqueColors(t, got)
+	if !containsColor(got, "#ff00aa") {
+		t.Fatalf("expected configured path_bg to be included, got %#v", got)
 	}
 }
 
@@ -140,7 +165,7 @@ func TestRenderFallsBackToASCIIWhenDisabled(t *testing.T) {
 	}
 	out := Render([]string{"path"}, "❯", palette, Context{WorkDir: "/tmp/project"})
 
-	if strings.Contains(out, segmentSeparator) {
+	if segmentSeparator != "" && strings.Contains(out, segmentSeparator) {
 		t.Fatalf("expected ASCII separator fallback in vscode, got %q", out)
 	}
 	if strings.Contains(out, "❯") {
@@ -152,4 +177,25 @@ func TestRenderFallsBackToASCIIWhenDisabled(t *testing.T) {
 	if strings.Contains(out, folderIcon) {
 		t.Fatalf("expected empty icon fallback in vscode, got %q", out)
 	}
+}
+
+func assertUniqueColors(t *testing.T, colors []string) {
+	t.Helper()
+	seen := map[string]struct{}{}
+	for _, color := range colors {
+		normalized := strings.ToLower(color)
+		if _, ok := seen[normalized]; ok {
+			t.Fatalf("expected unique colors, got duplicate %q in %#v", color, colors)
+		}
+		seen[normalized] = struct{}{}
+	}
+}
+
+func containsColor(colors []string, target string) bool {
+	for _, color := range colors {
+		if strings.EqualFold(color, target) {
+			return true
+		}
+	}
+	return false
 }

@@ -2,7 +2,7 @@ package prompt
 
 import (
 	"fmt"
-	"math"
+	"math/rand"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -18,7 +18,7 @@ const (
 	folderIcon            = "\uf07b"
 	timeIcon              = "\uf017"
 	errorIcon             = "\uf057"
-	segmentSeparator      = "" //"\ue0b0"
+	segmentSeparator      = "\ue0b0" //"\ue0b0"
 	segmentSeparatorASCII = ""
 	promptLinePrefix      = "| "
 
@@ -150,9 +150,6 @@ func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 	for i, part := range parts {
 		segment := newSegment("path", part, palette)
 		segment.bg = pathColors[i%len(pathColors)]
-		if fg := palette[fmt.Sprintf("path_fg_%d", i+1)]; fg != "" {
-			segment.fg = fg
-		}
 		segments = append(segments, segment)
 	}
 
@@ -169,54 +166,43 @@ func pathGradient(palette map[string]string) []string {
 	if len(gradient) > 0 {
 		return gradient
 	}
-	if palette["path_bg"] != "" {
-		if derived := derivePathGradient(palette["path_bg"]); len(derived) > 0 {
-			return derived
-		}
-		return []string{palette["path_bg"]}
-	}
 
-	return []string{
+	defaultColors := []string{
 		"#3b82f6", "#22c55e", "#a855f7", "#f59e0b", "#06b6d4",
 		"#ef4444", "#84cc16", "#ec4899", "#6366f1", "#14b8a6",
 		"#f97316", "#8b5cf6", "#10b981", "#eab308", "#0ea5e9",
 		"#d946ef", "#65a30d", "#fb7185", "#2563eb", "#16a34a",
 	}
+
+	base := strings.TrimSpace(palette["path_bg"])
+	if ansiRGB("48", base) == "" {
+		base = ""
+	}
+	if base == "" {
+		return shuffledColors(defaultColors)
+	}
+
+	colors := make([]string, 0, defaultGradientSteps)
+	colors = append(colors, strings.ToLower(base))
+	for _, color := range defaultColors {
+		if strings.EqualFold(color, base) {
+			continue
+		}
+		colors = append(colors, color)
+		if len(colors) == defaultGradientSteps {
+			break
+		}
+	}
+
+	return shuffledColors(colors)
 }
 
-func derivePathGradient(base string) []string {
-	if !strings.HasPrefix(base, "#") || len(base) != 7 {
-		return nil
-	}
-	r, err := strconv.ParseInt(base[1:3], 16, 64)
-	if err != nil {
-		return nil
-	}
-	g, err := strconv.ParseInt(base[3:5], 16, 64)
-	if err != nil {
-		return nil
-	}
-	b, err := strconv.ParseInt(base[5:7], 16, 64)
-	if err != nil {
-		return nil
-	}
-
-	gradient := make([]string, 0, defaultGradientSteps)
-	for i := 0; i < defaultGradientSteps; i++ {
-		shift := (float64(i) - float64(defaultGradientSteps-1)/2.0) * 7
-		gradient = append(gradient, fmt.Sprintf("#%02x%02x%02x",
-			shiftChannel(r, shift),
-			shiftChannel(g, shift),
-			shiftChannel(b, shift),
-		))
-	}
-
-	return gradient
-}
-
-func shiftChannel(value int64, shift float64) int64 {
-	shifted := float64(value) + shift
-	return int64(math.Max(0, math.Min(255, shifted)))
+func shuffledColors(colors []string) []string {
+	shuffled := append([]string(nil), colors...)
+	rand.Shuffle(len(shuffled), func(i, j int) {
+		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	})
+	return shuffled
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
