@@ -20,6 +20,7 @@ const (
 	errorIcon            = "ERR"
 	segmentSeparator     = ">"
 	promptLinePrefix     = "| "
+
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
 )
