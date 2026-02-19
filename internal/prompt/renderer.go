@@ -18,7 +18,7 @@ const (
 	folderIcon           = "DIR"
 	timeIcon             = "TIME"
 	errorIcon            = "ERR"
-	segmentSeparator     = ">"
+	segmentSeparator     = ""
 	promptLinePrefix     = "| "
 
 	maxPathBreadcrumbs   = 20
