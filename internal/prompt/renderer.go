@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -135,6 +136,9 @@ func pathGradient(palette map[string]string) []string {
 		return gradient
 	}
 	if palette["path_bg"] != "" {
+		if derived := derivePathGradient(palette["path_bg"]); len(derived) > 0 {
+			return derived
+		}
 		return []string{palette["path_bg"]}
 	}
 
@@ -144,6 +148,41 @@ func pathGradient(palette map[string]string) []string {
 		"#f97316", "#8b5cf6", "#10b981", "#eab308", "#0ea5e9",
 		"#d946ef", "#65a30d", "#fb7185", "#2563eb", "#16a34a",
 	}
+}
+
+func derivePathGradient(base string) []string {
+	if !strings.HasPrefix(base, "#") || len(base) != 7 {
+		return nil
+	}
+	r, err := strconv.ParseInt(base[1:3], 16, 64)
+	if err != nil {
+		return nil
+	}
+	g, err := strconv.ParseInt(base[3:5], 16, 64)
+	if err != nil {
+		return nil
+	}
+	b, err := strconv.ParseInt(base[5:7], 16, 64)
+	if err != nil {
+		return nil
+	}
+
+	gradient := make([]string, 0, defaultGradientSteps)
+	for i := 0; i < defaultGradientSteps; i++ {
+		shift := (float64(i) - float64(defaultGradientSteps-1)/2.0) * 7
+		gradient = append(gradient, fmt.Sprintf("#%02x%02x%02x",
+			shiftChannel(r, shift),
+			shiftChannel(g, shift),
+			shiftChannel(b, shift),
+		))
+	}
+
+	return gradient
+}
+
+func shiftChannel(value int64, shift float64) int64 {
+	shifted := float64(value) + shift
+	return int64(math.Max(0, math.Min(255, shifted)))
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
