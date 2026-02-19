@@ -20,6 +20,9 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 	if !strings.Contains(out, folderIcon) || !strings.Contains(out, "project") {
 		t.Fatalf("expected folder breadcrumb output, got %q", out)
 	}
+	if strings.Count(out, "\x1b[48;2;18;52;86m") < 3 {
+		t.Fatalf("expected each path part to be rendered as its own badge, got %q", out)
+	}
 	if !strings.Contains(out, "") {
 		t.Fatalf("expected arrow separator, got %q", out)
 	}
@@ -28,11 +31,18 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 	}
 }
 
-func TestRenderPathBreadcrumbs(t *testing.T) {
-	got := renderPathBreadcrumbs("/Users/john/Desktop")
-	want := "📁 / > 📁 Users > 📁 john > 📁 Desktop"
-	if got != want {
-		t.Fatalf("unexpected breadcrumbs\nwant: %q\n got: %q", want, got)
+func TestRenderPathParts(t *testing.T) {
+	got := renderPathParts("/Users/john/Desktop")
+	want := []string{" /", " Users", " john", " Desktop"}
+
+	if len(got) != len(want) {
+		t.Fatalf("unexpected part count\nwant: %d\n got: %d", len(want), len(got))
+	}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("unexpected path part at index %d\nwant: %q\n got: %q", i, want[i], got[i])
+		}
 	}
 }
 

@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	folderIcon          = "📁"
-	breadcrumbSeparator = " > "
+	folderIcon = ""
 )
 
 type Context struct {
@@ -40,7 +39,7 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 			if wd == "" {
 				wd, _ = os.Getwd()
 			}
-			rendered = append(rendered, newSegment("path", renderPathBreadcrumbs(wd), palette))
+			rendered = append(rendered, renderPathSegments(wd, palette)...)
 		case "time":
 			rendered = append(rendered, newSegment("time", time.Now().Format("15:04:05"), palette))
 		case "exit_code":
@@ -57,9 +56,9 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 	return renderWithArrows(rendered)
 }
 
-func renderPathBreadcrumbs(wd string) string {
+func renderPathParts(wd string) []string {
 	if wd == "" {
-		return folderIcon
+		return []string{folderIcon}
 	}
 
 	clean := filepath.Clean(wd)
@@ -90,10 +89,20 @@ func renderPathBreadcrumbs(wd string) string {
 	}
 
 	if len(crumbs) == 0 {
-		return folderIcon
+		return []string{folderIcon}
 	}
 
-	return strings.Join(crumbs, breadcrumbSeparator)
+	return crumbs
+}
+
+func renderPathSegments(wd string, palette map[string]string) []renderSegment {
+	parts := renderPathParts(wd)
+	segments := make([]renderSegment, 0, len(parts))
+	for _, part := range parts {
+		segments = append(segments, newSegment("path", part, palette))
+	}
+
+	return segments
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
