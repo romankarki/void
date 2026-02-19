@@ -37,7 +37,7 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 
 func TestRenderPathParts(t *testing.T) {
 	got := renderPathParts("/Users/john/Desktop")
-	want := []string{"📁 /", "📁 /Users", "📁 /john", "📁 /Desktop"}
+	want := []string{"📁", "📁 Users", "📁 john", "📁 Desktop"}
 
 	if len(got) != len(want) {
 		t.Fatalf("unexpected part count\nwant: %d\n got: %d", len(want), len(got))
@@ -51,8 +51,8 @@ func TestRenderPathParts(t *testing.T) {
 }
 
 func TestPathGradientFallbacks(t *testing.T) {
-	if got := pathGradient(map[string]string{"path_bg": "#101010"}); len(got) != 1 || got[0] != "#101010" {
-		t.Fatalf("expected path_bg fallback, got %#v", got)
+	if got := pathGradient(map[string]string{"path_bg": "#101010"}); len(got) != defaultGradientSteps {
+		t.Fatalf("expected %d derived colors from path_bg, got %d", defaultGradientSteps, len(got))
 	}
 
 	palette := map[string]string{"path_bg_1": "#111111", "path_bg_2": "#222222"}
@@ -74,12 +74,22 @@ func TestRenderPathPartsCapsBreadcrumbs(t *testing.T) {
 		t.Fatalf("expected %d breadcrumbs, got %d", maxPathBreadcrumbs, len(got))
 	}
 
-	if got[0] != "📁 /" {
+	if got[0] != "📁" {
 		t.Fatalf("expected root breadcrumb first, got %q", got[0])
 	}
 
-	if got[len(got)-1] != "📁 /s" {
+	if got[len(got)-1] != "📁 s" {
 		t.Fatalf("expected capped breadcrumb to end at s, got %q", got[len(got)-1])
+	}
+}
+
+func TestPathGradientDerivesShadesFromPathBG(t *testing.T) {
+	got := pathGradient(map[string]string{"path_bg": "#ff00aa"})
+	if len(got) != defaultGradientSteps {
+		t.Fatalf("expected %d derived colors, got %d", defaultGradientSteps, len(got))
+	}
+	if got[0] == got[len(got)-1] {
+		t.Fatalf("expected gradient variation, got %#v", got)
 	}
 }
 
