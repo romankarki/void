@@ -21,7 +21,7 @@ exit_code_bg = "#ff0055"
 symbol_fg = "#00f5ff"
 
 [history]
-path = "~/.void/history"
+path = ".void/history"
 max_size = 5000
 
 [alias]

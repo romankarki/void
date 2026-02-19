@@ -17,7 +17,7 @@ args = ["-c"]
 symbol = ">"
 segments = ["path", "time"]
 [history]
-path = "~/history"
+path = "/history"
 max_size = 42
 [palette]
 path_fg = "#ffffff"
