@@ -35,6 +35,13 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 	}
 }
 
+func TestRenderBreaksPromptAfterBadges(t *testing.T) {
+	out := Render([]string{"path"}, ">", map[string]string{"path_bg": "#123456"}, Context{WorkDir: "/tmp/project"})
+	if !strings.Contains(out, "\n"+promptLinePrefix+">") {
+		t.Fatalf("expected badge line break with prompt prefix, got %q", out)
+	}
+}
+
 func TestRenderPathParts(t *testing.T) {
 	got := renderPathParts("/Users/john/Desktop")
 	want := []string{folderIcon, folderIcon + " Users", folderIcon + " john", folderIcon + " Desktop"}

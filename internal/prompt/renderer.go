@@ -19,6 +19,7 @@ const (
 	timeIcon             = "TIME"
 	errorIcon            = "ERR"
 	segmentSeparator     = ">"
+	promptLinePrefix     = "| "
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
 )
@@ -35,7 +36,7 @@ type renderSegment struct {
 }
 
 func Render(segments []string, symbol string, palette map[string]string, ctx Context) string {
-	rendered := make([]renderSegment, 0, len(segments)+1)
+	rendered := make([]renderSegment, 0, len(segments))
 	for _, segment := range segments {
 		switch segment {
 		case "user":
@@ -63,9 +64,16 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 	if symbol == "" {
 		symbol = ">"
 	}
-	rendered = append(rendered, newSegment("symbol", symbol, palette))
+	symbolSegment := newSegment("symbol", symbol, palette)
 
-	return renderWithArrows(rendered)
+	if len(rendered) == 0 {
+		return renderWithArrows([]renderSegment{symbolSegment})
+	}
+
+	badges := strings.TrimRight(renderWithArrows(rendered), " ")
+	promptSymbol := strings.TrimLeft(renderWithArrows([]renderSegment{symbolSegment}), " ")
+
+	return badges + "\n" + promptLinePrefix + promptSymbol
 }
 
 func renderPathParts(wd string) []string {
