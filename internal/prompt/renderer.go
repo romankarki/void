@@ -95,7 +95,7 @@ func renderPathParts(wd string) []string {
 	}
 
 	for _, part := range parts {
-		crumbs = append(crumbs, fmt.Sprintf("%s %s", folderIcon, part))
+		crumbs = append(crumbs, fmt.Sprintf("%s /%s", folderIcon, part))
 		if len(crumbs) >= maxPathBreadcrumbs {
 			break
 		}
