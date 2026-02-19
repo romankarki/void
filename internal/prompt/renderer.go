@@ -5,10 +5,13 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 )
+
+const folderIcon = "󰉋"
 
 type Context struct {
 	LastExitCode int
@@ -34,7 +37,7 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 			if wd == "" {
 				wd, _ = os.Getwd()
 			}
-			rendered = append(rendered, newSegment("path", filepath.Base(wd), palette))
+			rendered = append(rendered, newSegment("path", renderPathBreadcrumbs(wd), palette))
 		case "time":
 			rendered = append(rendered, newSegment("time", time.Now().Format("15:04:05"), palette))
 		case "exit_code":
@@ -49,6 +52,45 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 	rendered = append(rendered, newSegment("symbol", symbol, palette))
 
 	return renderWithArrows(rendered)
+}
+
+func renderPathBreadcrumbs(wd string) string {
+	if wd == "" {
+		return folderIcon
+	}
+
+	clean := filepath.Clean(wd)
+	vol := filepath.VolumeName(clean)
+	remainder := strings.TrimPrefix(clean, vol)
+
+	sep := string(filepath.Separator)
+	if sep == "\\" {
+		remainder = strings.ReplaceAll(remainder, "/", "\\")
+	}
+	parts := strings.FieldsFunc(remainder, func(r rune) bool {
+		return r == '/' || r == '\\'
+	})
+
+	crumbs := make([]string, 0, len(parts)+1)
+	if vol != "" {
+		crumbs = append(crumbs, fmt.Sprintf("%s %s", folderIcon, vol))
+	} else if strings.HasPrefix(clean, sep) || strings.HasPrefix(clean, "/") || strings.HasPrefix(clean, "\\") {
+		if runtime.GOOS == "windows" {
+			crumbs = append(crumbs, folderIcon)
+		} else {
+			crumbs = append(crumbs, fmt.Sprintf("%s /", folderIcon))
+		}
+	}
+
+	for _, part := range parts {
+		crumbs = append(crumbs, fmt.Sprintf("%s %s", folderIcon, part))
+	}
+
+	if len(crumbs) == 0 {
+		return folderIcon
+	}
+
+	return strings.Join(crumbs, " › ")
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
