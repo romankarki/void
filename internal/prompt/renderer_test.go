@@ -37,7 +37,7 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 
 func TestRenderPathParts(t *testing.T) {
 	got := renderPathParts("/Users/john/Desktop")
-	want := []string{"📁 /", "📁 Users", "📁 john", "📁 Desktop"}
+	want := []string{"📁 /", "📁 /Users", "📁 /john", "📁 /Desktop"}
 
 	if len(got) != len(want) {
 		t.Fatalf("unexpected part count\nwant: %d\n got: %d", len(want), len(got))
@@ -78,7 +78,7 @@ func TestRenderPathPartsCapsBreadcrumbs(t *testing.T) {
 		t.Fatalf("expected root breadcrumb first, got %q", got[0])
 	}
 
-	if got[len(got)-1] != "📁 s" {
+	if got[len(got)-1] != "📁 /s" {
 		t.Fatalf("expected capped breadcrumb to end at s, got %q", got[len(got)-1])
 	}
 }
