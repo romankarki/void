@@ -6,6 +6,9 @@ import (
 )
 
 func TestRenderAppliesPaletteBadges(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+
 	palette := map[string]string{
 		"path_fg":   "#ffffff",
 		"path_bg_1": "#123456",
@@ -36,6 +39,9 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 }
 
 func TestRenderBreaksPromptAfterBadges(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+
 	out := Render([]string{"path"}, ">", map[string]string{"path_bg": "#123456"}, Context{WorkDir: "/tmp/project"})
 	if !strings.Contains(out, "\n"+promptLinePrefix+">") {
 		t.Fatalf("expected badge line break with prompt prefix, got %q", out)
@@ -43,6 +49,7 @@ func TestRenderBreaksPromptAfterBadges(t *testing.T) {
 }
 
 func TestRenderPathParts(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
 	got := renderPathParts("/Users/john/Desktop")
 	want := []string{folderIcon, folderIcon + " Users", folderIcon + " john", folderIcon + " Desktop"}
 
@@ -75,6 +82,7 @@ func TestPathGradientFallbacks(t *testing.T) {
 }
 
 func TestRenderPathPartsCapsBreadcrumbs(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
 	got := renderPathParts("/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v")
 
 	if len(got) != maxPathBreadcrumbs {
@@ -101,6 +109,9 @@ func TestPathGradientDerivesShadesFromPathBG(t *testing.T) {
 }
 
 func TestRenderExitCodeUsesErrorLabel(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+
 	out := Render([]string{"exit_code"}, ">", map[string]string{"exit_code_fg": "#ffffff", "exit_code_bg": "#ff0000"}, Context{LastExitCode: 1})
 	if !strings.Contains(out, "1 error") {
 		t.Fatalf("expected singular error label, got %q", out)
@@ -115,5 +126,30 @@ func TestRenderExitCodeUsesErrorLabel(t *testing.T) {
 func TestAnsiRGBRejectsInvalidColor(t *testing.T) {
 	if got := ansiRGB("38", "blue"); got != "" {
 		t.Fatalf("expected empty for invalid color, got %q", got)
+	}
+}
+
+func TestRenderFallsBackToASCIIWhenDisabled(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "vscode")
+	t.Setenv("VOID_PROMPT_UNICODE", "0")
+
+	palette := map[string]string{
+		"path_fg":   "#ffffff",
+		"path_bg_1": "#123456",
+		"path_bg_2": "#345678",
+	}
+	out := Render([]string{"path"}, "❯", palette, Context{WorkDir: "/tmp/project"})
+
+	if strings.Contains(out, segmentSeparator) {
+		t.Fatalf("expected ASCII separator fallback in vscode, got %q", out)
+	}
+	if strings.Contains(out, "❯") {
+		t.Fatalf("expected ASCII symbol fallback in vscode, got %q", out)
+	}
+	if !strings.Contains(out, ">") {
+		t.Fatalf("expected ASCII glyphs in fallback output, got %q", out)
+	}
+	if strings.Contains(out, folderIcon) {
+		t.Fatalf("expected empty icon fallback in vscode, got %q", out)
 	}
 }

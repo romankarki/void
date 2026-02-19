@@ -13,13 +13,14 @@ import (
 )
 
 const (
-	userIcon             = "USER"
-	driveIcon            = "DRV"
-	folderIcon           = "DIR"
-	timeIcon             = "TIME"
-	errorIcon            = "ERR"
-	segmentSeparator     = ""
-	promptLinePrefix     = "| "
+	userIcon              = "\uf2bd"
+	driveIcon             = "\uf0a0"
+	folderIcon            = "\uf07b"
+	timeIcon              = "\uf017"
+	errorIcon             = "\uf057"
+	segmentSeparator      = "" //"\ue0b0"
+	segmentSeparatorASCII = ""
+	promptLinePrefix      = "| "
 
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
@@ -37,12 +38,17 @@ type renderSegment struct {
 }
 
 func Render(segments []string, symbol string, palette map[string]string, ctx Context) string {
+	unicodeOK := supportsUnicodePrompt()
+	userPromptIcon := promptIcon(userIcon)
+	timePromptIcon := promptIcon(timeIcon)
+	errorPromptIcon := promptIcon(errorIcon)
+
 	rendered := make([]renderSegment, 0, len(segments))
 	for _, segment := range segments {
 		switch segment {
 		case "user":
 			if u, err := user.Current(); err == nil {
-				rendered = append(rendered, newSegment("user", fmt.Sprintf("%s %s", userIcon, strings.ToUpper(u.Username)), palette))
+				rendered = append(rendered, newSegment("user", labelWithOptionalIcon(userPromptIcon, strings.ToUpper(u.Username)), palette))
 			}
 		case "path":
 			wd := ctx.WorkDir
@@ -51,35 +57,45 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 			}
 			rendered = append(rendered, renderPathSegments(wd, palette)...)
 		case "time":
-			rendered = append(rendered, newSegment("time", fmt.Sprintf("%s %s", timeIcon, time.Now().Format("3:04 PM")), palette))
+			rendered = append(rendered, newSegment("time", labelWithOptionalIcon(timePromptIcon, time.Now().Format("3:04 PM")), palette))
 		case "exit_code":
 			if ctx.LastExitCode != 0 {
 				suffix := "errors"
 				if ctx.LastExitCode == 1 {
 					suffix = "error"
 				}
-				rendered = append(rendered, newSegment("exit_code", fmt.Sprintf("%s %d %s", errorIcon, ctx.LastExitCode, suffix), palette))
+				rendered = append(rendered, newSegment("exit_code", labelWithOptionalIcon(errorPromptIcon, fmt.Sprintf("%d %s", ctx.LastExitCode, suffix)), palette))
 			}
 		}
 	}
 	if symbol == "" {
 		symbol = ">"
 	}
+	if !unicodeOK && !isASCII(symbol) {
+		symbol = ">"
+	}
 	symbolSegment := newSegment("symbol", symbol, palette)
 
 	if len(rendered) == 0 {
-		return renderWithArrows([]renderSegment{symbolSegment})
+		return renderWithArrows([]renderSegment{symbolSegment}, unicodeOK)
 	}
 
-	badges := strings.TrimRight(renderWithArrows(rendered), " ")
-	promptSymbol := strings.TrimLeft(renderWithArrows([]renderSegment{symbolSegment}), " ")
+	badges := strings.TrimRight(renderWithArrows(rendered, unicodeOK), " ")
+	promptSymbol := strings.TrimLeft(renderWithArrows([]renderSegment{symbolSegment}, unicodeOK), " ")
 
 	return badges + "\n" + promptLinePrefix + promptSymbol
 }
 
 func renderPathParts(wd string) []string {
+	drivePromptIcon := promptIcon(driveIcon)
+	folderPromptIcon := promptIcon(folderIcon)
+
 	if wd == "" {
-		return []string{folderIcon}
+		root := folderPromptIcon
+		if root == "" {
+			return []string{string(filepath.Separator)}
+		}
+		return []string{root}
 	}
 
 	clean := filepath.Clean(wd)
@@ -96,24 +112,32 @@ func renderPathParts(wd string) []string {
 
 	crumbs := make([]string, 0, len(parts)+1)
 	if vol != "" {
-		crumbs = append(crumbs, fmt.Sprintf("%s %s", driveIcon, vol))
+		crumbs = append(crumbs, labelWithOptionalIcon(drivePromptIcon, vol))
 	} else if strings.HasPrefix(clean, sep) || strings.HasPrefix(clean, "/") || strings.HasPrefix(clean, "\\") {
-		if runtime.GOOS == "windows" {
-			crumbs = append(crumbs, folderIcon)
-		} else {
-			crumbs = append(crumbs, fmt.Sprintf("%s", folderIcon))
+		root := folderPromptIcon
+		if root == "" {
+			if runtime.GOOS == "windows" {
+				root = `\`
+			} else {
+				root = "/"
+			}
 		}
+		crumbs = append(crumbs, root)
 	}
 
 	for _, part := range parts {
-		crumbs = append(crumbs, fmt.Sprintf("%s %s", folderIcon, part))
+		crumbs = append(crumbs, labelWithOptionalIcon(folderPromptIcon, part))
 		if len(crumbs) >= maxPathBreadcrumbs {
 			break
 		}
 	}
 
 	if len(crumbs) == 0 {
-		return []string{folderIcon}
+		root := folderPromptIcon
+		if root == "" {
+			return []string{string(filepath.Separator)}
+		}
+		return []string{root}
 	}
 
 	return crumbs
@@ -203,8 +227,12 @@ func newSegment(name, text string, palette map[string]string) renderSegment {
 	}
 }
 
-func renderWithArrows(segments []renderSegment) string {
+func renderWithArrows(segments []renderSegment, unicodeOK bool) string {
 	var out strings.Builder
+	separator := segmentSeparator
+	if !unicodeOK {
+		separator = segmentSeparatorASCII
+	}
 	for i, segment := range segments {
 		nextBG := ""
 		if i+1 < len(segments) {
@@ -228,10 +256,10 @@ func renderWithArrows(segments []renderSegment) string {
 			arrowStyle := ansiSeq(segment.bg, nextBG)
 			if arrowStyle != "" {
 				out.WriteString(arrowStyle)
-				out.WriteString(segmentSeparator)
+				out.WriteString(separator)
 				out.WriteString("\x1b[0m")
 			} else {
-				out.WriteString(segmentSeparator)
+				out.WriteString(separator)
 			}
 		} else if i+1 < len(segments) {
 			out.WriteByte(' ')
@@ -239,6 +267,48 @@ func renderWithArrows(segments []renderSegment) string {
 	}
 	out.WriteByte(' ')
 	return out.String()
+}
+
+func supportsUnicodePrompt() bool {
+	override := strings.TrimSpace(strings.ToLower(os.Getenv("VOID_PROMPT_UNICODE")))
+	switch override {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	}
+
+	return true
+}
+
+func promptIcon(icon string) string {
+	if isVSCodeTerminal() {
+		return ""
+	}
+	return icon
+}
+
+func isVSCodeTerminal() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("TERM_PROGRAM")), "vscode")
+}
+
+func labelWithOptionalIcon(icon, label string) string {
+	if icon == "" {
+		return label
+	}
+	if label == "" {
+		return icon
+	}
+	return icon + " " + label
+}
+
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] > 127 {
+			return false
+		}
+	}
+	return true
 }
 
 func ansiSeq(fg, bg string) string {

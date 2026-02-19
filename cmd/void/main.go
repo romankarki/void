@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/void-shell/void/internal/console"
 	"github.com/void-shell/void/internal/config"
 	"github.com/void-shell/void/internal/integration"
 	"github.com/void-shell/void/internal/prompt"
@@ -13,6 +14,8 @@ import (
 )
 
 func main() {
+	console.EnableUTF8()
+
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "prompt":
