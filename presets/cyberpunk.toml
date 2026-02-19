@@ -1,14 +1,17 @@
 [prompt]
 symbol = "❯"
-segments = ["user", "path", "time", "exit_code"]
+segments = ["path", "time", "exit_code"]
 
 [palette]
-user_fg = "#0b1020"
-user_bg = "#00f5ff"
-path_fg = "#0b1020"
-path_bg = "#ff4df0"
-time_fg = "#0b1020"
-time_bg = "#f9ff00"
+user_fg = "#f8fafc"
+user_bg = "#2563eb"
+path_fg = "#e2e8f0"
+path_bg_1 = "#0f172a"
+path_bg_2 = "#1d4ed8"
+path_bg_3 = "#0891b2"
+path_bg_4 = "#0ea5e9"
+time_fg = "#0f172a"
+time_bg = "#a7f3d0"
 exit_code_fg = "#ffffff"
-exit_code_bg = "#ff0055"
-symbol_fg = "#00f5ff"
+exit_code_bg = "#dc2626"
+symbol_fg = "#38bdf8"

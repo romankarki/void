@@ -8,7 +8,8 @@ import (
 func TestRenderAppliesPaletteBadges(t *testing.T) {
 	palette := map[string]string{
 		"path_fg":   "#ffffff",
-		"path_bg":   "#123456",
+		"path_bg_1": "#123456",
+		"path_bg_2": "#345678",
 		"symbol_fg": "#abcdef",
 	}
 
@@ -17,10 +18,13 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 	if !strings.Contains(out, "\x1b[38;2;255;255;255m") || !strings.Contains(out, "\x1b[48;2;18;52;86m") {
 		t.Fatalf("expected path ANSI colors, got %q", out)
 	}
+	if !strings.Contains(out, "\x1b[48;2;52;86;120m") {
+		t.Fatalf("expected second path gradient color, got %q", out)
+	}
 	if !strings.Contains(out, folderIcon) || !strings.Contains(out, "project") {
 		t.Fatalf("expected folder breadcrumb output, got %q", out)
 	}
-	if strings.Count(out, "\x1b[48;2;18;52;86m") < 3 {
+	if strings.Count(out, "") < 3 {
 		t.Fatalf("expected each path part to be rendered as its own badge, got %q", out)
 	}
 	if !strings.Contains(out, "") {
@@ -33,7 +37,7 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 
 func TestRenderPathParts(t *testing.T) {
 	got := renderPathParts("/Users/john/Desktop")
-	want := []string{" /", " Users", " john", " Desktop"}
+	want := []string{"📂 /", "📂 Users", "📂 john", "📂 Desktop"}
 
 	if len(got) != len(want) {
 		t.Fatalf("unexpected part count\nwant: %d\n got: %d", len(want), len(got))
@@ -43,6 +47,18 @@ func TestRenderPathParts(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("unexpected path part at index %d\nwant: %q\n got: %q", i, want[i], got[i])
 		}
+	}
+}
+
+func TestPathGradientFallbacks(t *testing.T) {
+	if got := pathGradient(map[string]string{"path_bg": "#101010"}); len(got) != 1 || got[0] != "#101010" {
+		t.Fatalf("expected path_bg fallback, got %#v", got)
+	}
+
+	palette := map[string]string{"path_bg_1": "#111111", "path_bg_2": "#222222"}
+	got := pathGradient(palette)
+	if len(got) != 2 || got[0] != "#111111" || got[1] != "#222222" {
+		t.Fatalf("expected gradient palette, got %#v", got)
 	}
 }
 
