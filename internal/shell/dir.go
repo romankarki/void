@@ -26,7 +26,7 @@ func (a *App) runBuiltin(line string) (bool, int) {
 		return false, 0
 	}
 	if len(fields) > 2 {
-		fmt.Fprintln(os.Stderr, "usage: dir [path]")
+		a.reportError("usage: dir [path]")
 		return true, 1
 	}
 	if len(fields) == 2 && strings.HasPrefix(fields[1], "/") {
@@ -39,7 +39,7 @@ func (a *App) runBuiltin(line string) (bool, int) {
 		target = fields[1]
 	}
 	if err := renderDirectory(os.Stdout, target); err != nil {
-		fmt.Fprintf(os.Stderr, "dir: %v\n", err)
+		a.reportError(fmt.Sprintf("dir: %v", err))
 		return true, 1
 	}
 	return true, 0

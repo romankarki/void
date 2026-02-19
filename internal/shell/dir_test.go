@@ -54,4 +54,7 @@ func TestRunBuiltinDirUsageValidation(t *testing.T) {
 	if !handled || code != 1 {
 		t.Fatalf("expected usage failure, handled=%v code=%d", handled, code)
 	}
+	if app.lastError != "usage: dir [path]" {
+		t.Fatalf("expected last error to be recorded, got %q", app.lastError)
+	}
 }

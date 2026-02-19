@@ -18,6 +18,7 @@ type App struct {
 	cfg       config.Config
 	configSrc string
 	lastCode  int
+	lastError string
 	history   *history.Store
 	complete  *autocomplete.Engine
 }
@@ -56,7 +57,7 @@ func (a *App) Run() error {
 		}
 		if strings.HasPrefix(line, "cd ") {
 			if err := os.Chdir(strings.TrimSpace(strings.TrimPrefix(line, "cd "))); err != nil {
-				fmt.Fprintf(os.Stderr, "cd: %v\n", err)
+				a.reportError(fmt.Sprintf("cd: %v", err))
 				a.lastCode = 1
 			} else {
 				a.lastCode = 0
@@ -84,7 +85,7 @@ func (a *App) expandAlias(line string) string {
 func (a *App) runMeta(line string) int {
 	fields := strings.Fields(line)
 	if len(fields) < 2 {
-		fmt.Println("void commands: complete, history, reload")
+		a.reportError("void commands: complete, history, reload, copy-error")
 		return 1
 	}
 	switch fields[1] {
@@ -95,7 +96,7 @@ func (a *App) runMeta(line string) int {
 		return 0
 	case "complete":
 		if len(fields) < 3 {
-			fmt.Println("usage: void complete <prefix>")
+			a.reportError("usage: void complete <prefix>")
 			return 1
 		}
 		matches := a.complete.Complete(fields[2], a.history.Entries())
@@ -106,19 +107,30 @@ func (a *App) runMeta(line string) int {
 	case "reload":
 		cfg, _, err := config.Load(a.configSrc)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "reload failed: %v\n", err)
+			a.reportError(fmt.Sprintf("reload failed: %v", err))
 			return 1
 		}
 		merged, err := theme.ApplyPreset(cfg)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "reload failed: %v\n", err)
+			a.reportError(fmt.Sprintf("reload failed: %v", err))
 			return 1
 		}
 		a.cfg = merged
 		fmt.Println("configuration reloaded")
 		return 0
+	case "copy-error":
+		if strings.TrimSpace(a.lastError) == "" {
+			a.reportError("no error message captured yet")
+			return 1
+		}
+		if err := copyTextToClipboard(a.lastError); err != nil {
+			a.reportError(fmt.Sprintf("copy-error failed: %v", err))
+			return 1
+		}
+		fmt.Println("copied last error to clipboard")
+		return 0
 	default:
-		fmt.Println("unknown void command")
+		a.reportError("unknown void command")
 		return 1
 	}
 }
@@ -134,10 +146,32 @@ func (a *App) runCommand(line string) int {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
+			a.recordError(fmt.Sprintf("command %q exited with code %d", line, exitErr.ExitCode()))
+			a.printCopyErrorHint()
 			return exitErr.ExitCode()
 		}
-		fmt.Fprintf(os.Stderr, "void: run command: %v\n", err)
+		a.reportError(fmt.Sprintf("void: run command: %v", err))
 		return 1
 	}
 	return 0
+}
+
+func (a *App) recordError(message string) {
+	a.lastError = strings.TrimSpace(message)
+}
+
+func (a *App) printCopyErrorHint() {
+	if strings.TrimSpace(a.lastError) == "" {
+		return
+	}
+	fmt.Fprintln(os.Stderr, "hint: run `void copy-error` to copy the last error")
+}
+
+func (a *App) reportError(message string) {
+	a.recordError(message)
+	if strings.TrimSpace(a.lastError) == "" {
+		return
+	}
+	fmt.Fprintln(os.Stderr, a.lastError)
+	a.printCopyErrorHint()
 }
