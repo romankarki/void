@@ -98,11 +98,33 @@ func renderPathParts(wd string) []string {
 func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 	parts := renderPathParts(wd)
 	segments := make([]renderSegment, 0, len(parts))
-	for _, part := range parts {
-		segments = append(segments, newSegment("path", part, palette))
+	pathColors := pathGradient(palette)
+	for i, part := range parts {
+		segment := newSegment("path", part, palette)
+		segment.bg = pathColors[i%len(pathColors)]
+		if fg := palette[fmt.Sprintf("path_fg_%d", i+1)]; fg != "" {
+			segment.fg = fg
+		}
+		segments = append(segments, segment)
 	}
 
 	return segments
+}
+
+func pathGradient(palette map[string]string) []string {
+	gradient := make([]string, 0, 6)
+	for i := 1; i <= 6; i++ {
+		if color := palette[fmt.Sprintf("path_bg_%d", i)]; color != "" {
+			gradient = append(gradient, color)
+		}
+	}
+	if len(gradient) > 0 {
+		return gradient
+	}
+	if palette["path_bg"] != "" {
+		return []string{palette["path_bg"]}
+	}
+	return []string{""}
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
