@@ -20,6 +20,9 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 	if !strings.Contains(out, " project ") {
 		t.Fatalf("expected path badge style, got %q", out)
 	}
+	if !strings.Contains(out, "") {
+		t.Fatalf("expected arrow separator, got %q", out)
+	}
 	if !strings.Contains(out, "\x1b[38;2;171;205;239m>") {
 		t.Fatalf("expected symbol color, got %q", out)
 	}

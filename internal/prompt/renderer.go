@@ -15,55 +15,97 @@ type Context struct {
 	WorkDir      string
 }
 
+type renderSegment struct {
+	text string
+	fg   string
+	bg   string
+}
+
 func Render(segments []string, symbol string, palette map[string]string, ctx Context) string {
-	parts := make([]string, 0, len(segments)+1)
+	rendered := make([]renderSegment, 0, len(segments)+1)
 	for _, segment := range segments {
 		switch segment {
 		case "user":
 			if u, err := user.Current(); err == nil {
-				parts = append(parts, styleSegment("user", u.Username, palette))
+				rendered = append(rendered, newSegment("user", u.Username, palette))
 			}
 		case "path":
 			wd := ctx.WorkDir
 			if wd == "" {
 				wd, _ = os.Getwd()
 			}
-			parts = append(parts, styleSegment("path", filepath.Base(wd), palette))
+			rendered = append(rendered, newSegment("path", filepath.Base(wd), palette))
 		case "time":
-			parts = append(parts, styleSegment("time", time.Now().Format("15:04:05"), palette))
+			rendered = append(rendered, newSegment("time", time.Now().Format("15:04:05"), palette))
 		case "exit_code":
 			if ctx.LastExitCode != 0 {
-				parts = append(parts, styleSegment("exit_code", fmt.Sprintf("✗ %d", ctx.LastExitCode), palette))
+				rendered = append(rendered, newSegment("exit_code", fmt.Sprintf("✗ %d", ctx.LastExitCode), palette))
 			}
 		}
 	}
 	if symbol == "" {
 		symbol = ">"
 	}
-	parts = append(parts, styleSegment("symbol", symbol, palette))
-	return strings.Join(parts, " ") + " "
+	rendered = append(rendered, newSegment("symbol", symbol, palette))
+
+	return renderWithArrows(rendered)
 }
 
-func styleSegment(name, text string, palette map[string]string) string {
-	fg := palette[name+"_fg"]
-	bg := palette[name+"_bg"]
-
-	styled := text
-	if bg != "" {
-		styled = " " + styled + " "
+func newSegment(name, text string, palette map[string]string) renderSegment {
+	return renderSegment{
+		text: text,
+		fg:   palette[name+"_fg"],
+		bg:   palette[name+"_bg"],
 	}
+}
 
-	start := strings.Builder{}
+func renderWithArrows(segments []renderSegment) string {
+	var out strings.Builder
+	for i, segment := range segments {
+		nextBG := ""
+		if i+1 < len(segments) {
+			nextBG = segments[i+1].bg
+		}
+
+		text := segment.text
+		if segment.bg != "" {
+			text = " " + text + " "
+		}
+
+		if start := ansiSeq(segment.fg, segment.bg); start != "" {
+			out.WriteString(start)
+			out.WriteString(text)
+			out.WriteString("\x1b[0m")
+		} else {
+			out.WriteString(text)
+		}
+
+		if segment.bg != "" {
+			arrowStyle := ansiSeq(segment.bg, nextBG)
+			if arrowStyle != "" {
+				out.WriteString(arrowStyle)
+				out.WriteString("")
+				out.WriteString("\x1b[0m")
+			} else {
+				out.WriteString("")
+			}
+		} else if i+1 < len(segments) {
+			out.WriteByte(' ')
+		}
+	}
+	out.WriteByte(' ')
+	return out.String()
+}
+
+func ansiSeq(fg, bg string) string {
+	var seq strings.Builder
 	if fgCode := ansiRGB("38", fg); fgCode != "" {
-		start.WriteString(fgCode)
+		seq.WriteString(fgCode)
 	}
 	if bgCode := ansiRGB("48", bg); bgCode != "" {
-		start.WriteString(bgCode)
+		seq.WriteString(bgCode)
 	}
-	if start.Len() == 0 {
-		return styled
-	}
-	return start.String() + styled + "\x1b[0m"
+	return seq.String()
 }
 
 func ansiRGB(prefix, color string) string {
