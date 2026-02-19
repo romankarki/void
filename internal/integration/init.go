@@ -23,7 +23,12 @@ func InitScript(shell string) (string, error) {
 }
 
 func powershellScript() string {
-	return `$global:__void_last_exit = 0
+	return `$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8NoBom
+[Console]::OutputEncoding = $utf8NoBom
+$OutputEncoding = $utf8NoBom
+
+$global:__void_last_exit = 0
 function prompt {
     $code = $global:LASTEXITCODE
     if ($null -eq $code) { $code = 0 }
