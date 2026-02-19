@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	folderIcon = "📂"
+	folderIcon           = "📂"
+	maxPathBreadcrumbs   = 20
+	defaultGradientSteps = 20
 )
 
 type Context struct {
@@ -86,6 +88,9 @@ func renderPathParts(wd string) []string {
 
 	for _, part := range parts {
 		crumbs = append(crumbs, fmt.Sprintf("%s %s", folderIcon, part))
+		if len(crumbs) >= maxPathBreadcrumbs {
+			break
+		}
 	}
 
 	if len(crumbs) == 0 {
@@ -112,8 +117,8 @@ func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 }
 
 func pathGradient(palette map[string]string) []string {
-	gradient := make([]string, 0, 6)
-	for i := 1; i <= 6; i++ {
+	gradient := make([]string, 0, defaultGradientSteps)
+	for i := 1; i <= defaultGradientSteps; i++ {
 		if color := palette[fmt.Sprintf("path_bg_%d", i)]; color != "" {
 			gradient = append(gradient, color)
 		}
@@ -124,7 +129,13 @@ func pathGradient(palette map[string]string) []string {
 	if palette["path_bg"] != "" {
 		return []string{palette["path_bg"]}
 	}
-	return []string{""}
+
+	return []string{
+		"#3b82f6", "#22c55e", "#a855f7", "#f59e0b", "#06b6d4",
+		"#ef4444", "#84cc16", "#ec4899", "#6366f1", "#14b8a6",
+		"#f97316", "#8b5cf6", "#10b981", "#eab308", "#0ea5e9",
+		"#d946ef", "#65a30d", "#fb7185", "#2563eb", "#16a34a",
+	}
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
