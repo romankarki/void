@@ -51,7 +51,12 @@ func TestRenderBreaksPromptAfterBadges(t *testing.T) {
 func TestRenderPathParts(t *testing.T) {
 	t.Setenv("TERM_PROGRAM", "")
 	got := renderPathParts("/Users/john/Desktop")
-	want := []string{folderIcon, folderIcon + " Users", folderIcon + " john", folderIcon + " Desktop"}
+	want := []string{
+		folderIcon,
+		labelWithOptionalIcon(folderIcon, "Users"),
+		labelWithOptionalIcon(folderIcon, "john"),
+		labelWithOptionalIcon(folderIcon, "Desktop"),
+	}
 
 	if len(got) != len(want) {
 		t.Fatalf("unexpected part count\nwant: %d\n got: %d", len(want), len(got))
@@ -117,7 +122,7 @@ func TestRenderPathPartsCapsBreadcrumbs(t *testing.T) {
 		t.Fatalf("expected root breadcrumb first, got %q", got[0])
 	}
 
-	if got[len(got)-1] != folderIcon+" s" {
+	if got[len(got)-1] != labelWithOptionalIcon(folderIcon, "s") {
 		t.Fatalf("expected capped breadcrumb to end at s, got %q", got[len(got)-1])
 	}
 }

@@ -1,4 +1,4 @@
-﻿package prompt
+package prompt
 
 import (
 	"fmt"
@@ -21,6 +21,7 @@ const (
 	segmentSeparator      = "\ue0b0"
 	segmentSeparatorASCII = ""
 	promptLinePrefix      = "| "
+	iconLabelGap          = "  "
 
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
@@ -297,7 +298,7 @@ func labelWithOptionalIcon(icon, label string) string {
 	if label == "" {
 		return icon
 	}
-	return icon + " " + label
+	return icon + iconLabelGap + label
 }
 
 func isASCII(s string) bool {
