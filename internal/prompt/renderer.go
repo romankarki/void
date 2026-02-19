@@ -12,7 +12,11 @@ import (
 )
 
 const (
-	folderIcon           = "📂"
+	userIcon             = ""
+	driveIcon            = "💾"
+	folderIcon           = "📁"
+	timeIcon             = "◷"
+	errorIcon            = "⚠"
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
 )
@@ -34,7 +38,7 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 		switch segment {
 		case "user":
 			if u, err := user.Current(); err == nil {
-				rendered = append(rendered, newSegment("user", u.Username, palette))
+				rendered = append(rendered, newSegment("user", fmt.Sprintf("%s %s", userIcon, strings.ToUpper(u.Username)), palette))
 			}
 		case "path":
 			wd := ctx.WorkDir
@@ -43,10 +47,14 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 			}
 			rendered = append(rendered, renderPathSegments(wd, palette)...)
 		case "time":
-			rendered = append(rendered, newSegment("time", time.Now().Format("15:04:05"), palette))
+			rendered = append(rendered, newSegment("time", fmt.Sprintf("%s %s", timeIcon, time.Now().Format("3:04 PM")), palette))
 		case "exit_code":
 			if ctx.LastExitCode != 0 {
-				rendered = append(rendered, newSegment("exit_code", fmt.Sprintf("✗ %d", ctx.LastExitCode), palette))
+				suffix := "errors"
+				if ctx.LastExitCode == 1 {
+					suffix = "error"
+				}
+				rendered = append(rendered, newSegment("exit_code", fmt.Sprintf("%s %d %s", errorIcon, ctx.LastExitCode, suffix), palette))
 			}
 		}
 	}
@@ -77,7 +85,7 @@ func renderPathParts(wd string) []string {
 
 	crumbs := make([]string, 0, len(parts)+1)
 	if vol != "" {
-		crumbs = append(crumbs, fmt.Sprintf("%s %s", folderIcon, vol))
+		crumbs = append(crumbs, fmt.Sprintf("%s %s", driveIcon, vol))
 	} else if strings.HasPrefix(clean, sep) || strings.HasPrefix(clean, "/") || strings.HasPrefix(clean, "\\") {
 		if runtime.GOOS == "windows" {
 			crumbs = append(crumbs, folderIcon)

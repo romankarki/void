@@ -3,21 +3,21 @@ symbol = "❯"
 segments = ["user", "path", "exit_code", "time"]
 
 [palette]
-user_fg = "#8ab4ff"
-user_bg = "#112a68"
+user_fg = "#a78bfa"
+user_bg = "#1f1a4a"
 
-path_fg = "#ffdca8"
-path_bg_1 = "#1f4725"
-path_bg_2 = "#5a3a05"
-path_bg_3 = "#3d2b0b"
-path_bg_4 = "#4f1d1f"
-path_bg_5 = "#4a1637"
-path_bg_6 = "#3f1b62"
+path_fg = "#ffd166"
+path_bg_1 = "#18424d"
+path_bg_2 = "#1f5f3a"
+path_bg_3 = "#4d3511"
+path_bg_4 = "#5b1f36"
+path_bg_5 = "#3a1f55"
+path_bg_6 = "#163f59"
 
-exit_code_fg = "#ffb3b3"
-exit_code_bg = "#4a0000"
+exit_code_fg = "#ff8f8f"
+exit_code_bg = "#4a1220"
 
-time_fg = "#ff82f9"
-time_bg = "#2d124d"
+time_fg = "#7dd3fc"
+time_bg = "#0f3552"
 
-symbol_fg = "#4c5f9e"
+symbol_fg = "#64748b"

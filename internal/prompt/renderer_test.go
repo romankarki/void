@@ -37,7 +37,7 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 
 func TestRenderPathParts(t *testing.T) {
 	got := renderPathParts("/Users/john/Desktop")
-	want := []string{"📂 /", "📂 Users", "📂 john", "📂 Desktop"}
+	want := []string{"📁 /", "📁 Users", "📁 john", "📁 Desktop"}
 
 	if len(got) != len(want) {
 		t.Fatalf("unexpected part count\nwant: %d\n got: %d", len(want), len(got))
@@ -74,12 +74,24 @@ func TestRenderPathPartsCapsBreadcrumbs(t *testing.T) {
 		t.Fatalf("expected %d breadcrumbs, got %d", maxPathBreadcrumbs, len(got))
 	}
 
-	if got[0] != "📂 /" {
+	if got[0] != "📁 /" {
 		t.Fatalf("expected root breadcrumb first, got %q", got[0])
 	}
 
-	if got[len(got)-1] != "📂 s" {
+	if got[len(got)-1] != "📁 s" {
 		t.Fatalf("expected capped breadcrumb to end at s, got %q", got[len(got)-1])
+	}
+}
+
+func TestRenderExitCodeUsesErrorLabel(t *testing.T) {
+	out := Render([]string{"exit_code"}, ">", map[string]string{"exit_code_fg": "#ffffff", "exit_code_bg": "#ff0000"}, Context{LastExitCode: 1})
+	if !strings.Contains(out, "1 error") {
+		t.Fatalf("expected singular error label, got %q", out)
+	}
+
+	out = Render([]string{"exit_code"}, ">", map[string]string{"exit_code_fg": "#ffffff", "exit_code_bg": "#ff0000"}, Context{LastExitCode: 2})
+	if !strings.Contains(out, "2 errors") {
+		t.Fatalf("expected plural error label, got %q", out)
 	}
 }
 
