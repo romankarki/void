@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	userIcon             = "USER"
-	driveIcon            = "DRV"
-	folderIcon           = "DIR"
-	timeIcon             = "TIME"
-	errorIcon            = "ERR"
-	segmentSeparator     = ">"
+	userIcon             = ""
+	driveIcon            = ""
+	folderIcon           = ""
+	timeIcon             = ""
+	errorIcon            = "X"
+	segmentSeparator     = ""
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
 )
