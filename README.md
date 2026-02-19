@@ -85,6 +85,37 @@ preset = "cyberpunk"
 
 Available now: `cyberpunk`, `minimal`.
 
+
+## Use Void prompt in other terminals
+
+You can now reuse Void's prompt renderer without running the full `void` wrapper shell.
+
+### Generate prompt text
+
+```bash
+void prompt --last-exit-code 0 --workdir "$PWD"
+```
+
+### Install shell hook snippets
+
+Print the integration snippet for your shell:
+
+```bash
+void init powershell
+void init bash
+void init zsh
+void init cmd
+```
+
+Then append the output to your shell profile:
+
+- **PowerShell / VS Code PowerShell profile**: add the snippet to `$PROFILE`.
+- **Bash**: add it to `~/.bashrc`.
+- **Zsh**: add it to `~/.zshrc`.
+- **CMD**: use the fallback `PROMPT` line (CMD has no native pre-prompt hook to run external programs).
+
+This makes the same Void prompt style available in Windows Terminal, VS Code integrated terminals, and other shell hosts that use those profiles.
+
 ## Development
 
 Run checks:
