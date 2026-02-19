@@ -17,7 +17,7 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 	if !strings.Contains(out, "\x1b[38;2;255;255;255m") || !strings.Contains(out, "\x1b[48;2;18;52;86m") {
 		t.Fatalf("expected path ANSI colors, got %q", out)
 	}
-	if !strings.Contains(out, "󰉋") || !strings.Contains(out, "project") {
+	if !strings.Contains(out, "DIR") || !strings.Contains(out, "project") {
 		t.Fatalf("expected folder breadcrumb output, got %q", out)
 	}
 	if !strings.Contains(out, "") {
@@ -30,7 +30,7 @@ func TestRenderAppliesPaletteBadges(t *testing.T) {
 
 func TestRenderPathBreadcrumbs(t *testing.T) {
 	got := renderPathBreadcrumbs("/Users/john/Desktop")
-	want := "󰉋 / › 󰉋 Users › 󰉋 john › 󰉋 Desktop"
+	want := "DIR / > DIR Users > DIR john > DIR Desktop"
 	if got != want {
 		t.Fatalf("unexpected breadcrumbs\nwant: %q\n got: %q", want, got)
 	}

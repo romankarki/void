@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-const folderIcon = "󰉋"
+const (
+	folderIcon          = "DIR"
+	breadcrumbSeparator = " > "
+)
 
 type Context struct {
 	LastExitCode int
@@ -90,7 +93,7 @@ func renderPathBreadcrumbs(wd string) string {
 		return folderIcon
 	}
 
-	return strings.Join(crumbs, " › ")
+	return strings.Join(crumbs, breadcrumbSeparator)
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
