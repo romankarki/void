@@ -13,11 +13,12 @@ import (
 )
 
 const (
-	userIcon             = ""
-	driveIcon            = "💾"
-	folderIcon           = "📁"
-	timeIcon             = "◷"
-	errorIcon            = "⚠"
+	userIcon             = "USER"
+	driveIcon            = "DRV"
+	folderIcon           = "DIR"
+	timeIcon             = "TIME"
+	errorIcon            = "ERR"
+	segmentSeparator     = ">"
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
 )
@@ -218,10 +219,10 @@ func renderWithArrows(segments []renderSegment) string {
 			arrowStyle := ansiSeq(segment.bg, nextBG)
 			if arrowStyle != "" {
 				out.WriteString(arrowStyle)
-				out.WriteString("")
+				out.WriteString(segmentSeparator)
 				out.WriteString("\x1b[0m")
 			} else {
-				out.WriteString("")
+				out.WriteString(segmentSeparator)
 			}
 		} else if i+1 < len(segments) {
 			out.WriteByte(' ')
