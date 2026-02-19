@@ -1,6 +1,9 @@
 package integration
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestInitScriptSupportedShells(t *testing.T) {
 	tests := []string{"powershell", "pwsh", "bash", "zsh", "cmd", "cmd.exe"}
@@ -21,5 +24,24 @@ func TestInitScriptSupportedShells(t *testing.T) {
 func TestInitScriptUnsupportedShell(t *testing.T) {
 	if _, err := InitScript("fish"); err == nil {
 		t.Fatal("expected an error for unsupported shell")
+	}
+}
+
+func TestPowershellInitScriptSetsUTF8Encoding(t *testing.T) {
+	snippet, err := InitScript("powershell")
+	if err != nil {
+		t.Fatalf("InitScript returned error: %v", err)
+	}
+
+	checks := []string{
+		"[Console]::InputEncoding = $utf8NoBom",
+		"[Console]::OutputEncoding = $utf8NoBom",
+		"$OutputEncoding = $utf8NoBom",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(snippet, check) {
+			t.Fatalf("expected powershell snippet to contain %q", check)
+		}
 	}
 }
