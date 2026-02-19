@@ -60,6 +60,27 @@ func TestPathGradientFallbacks(t *testing.T) {
 	if len(got) != 2 || got[0] != "#111111" || got[1] != "#222222" {
 		t.Fatalf("expected gradient palette, got %#v", got)
 	}
+
+	got = pathGradient(map[string]string{})
+	if len(got) != defaultGradientSteps {
+		t.Fatalf("expected %d default gradient colors, got %d", defaultGradientSteps, len(got))
+	}
+}
+
+func TestRenderPathPartsCapsBreadcrumbs(t *testing.T) {
+	got := renderPathParts("/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v")
+
+	if len(got) != maxPathBreadcrumbs {
+		t.Fatalf("expected %d breadcrumbs, got %d", maxPathBreadcrumbs, len(got))
+	}
+
+	if got[0] != "📂 /" {
+		t.Fatalf("expected root breadcrumb first, got %q", got[0])
+	}
+
+	if got[len(got)-1] != "📂 s" {
+		t.Fatalf("expected capped breadcrumb to end at s, got %q", got[len(got)-1])
+	}
 }
 
 func TestAnsiRGBRejectsInvalidColor(t *testing.T) {
