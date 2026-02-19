@@ -1,23 +1,23 @@
-[prompt]
-symbol = "❯"
+﻿[prompt]
+symbol = ">"
 segments = ["user", "path", "exit_code", "time"]
 
 [palette]
-user_fg = "#a78bfa"
-user_bg = "#1f1a4a"
+user_fg = "#e3f2fd"
+user_bg = "#0d47a1"
 
-path_fg = "#ffd166"
-path_bg_1 = "#18424d"
-path_bg_2 = "#1f5f3a"
-path_bg_3 = "#4d3511"
-path_bg_4 = "#5b1f36"
-path_bg_5 = "#3a1f55"
-path_bg_6 = "#163f59"
+path_fg = "#eceff1"
+path_bg_1 = "#1565c0"
+path_bg_2 = "#00695c"
+path_bg_3 = "#827717"
+path_bg_4 = "#0d47a1"
+path_bg_5 = "#2e7d32"
+path_bg_6 = "#8d6e00"
 
-exit_code_fg = "#ff8f8f"
-exit_code_bg = "#4a1220"
+exit_code_fg = "#ffcdd2"
+exit_code_bg = "#b71c1c"
 
-time_fg = "#7dd3fc"
-time_bg = "#0f3552"
+time_fg = "#b2dfdb"
+time_bg = "#004d40"
 
-symbol_fg = "#64748b"
+symbol_fg = "#80cbc4"

@@ -179,6 +179,16 @@ func TestRenderFallsBackToASCIIWhenDisabled(t *testing.T) {
 	}
 }
 
+func TestRenderKeepsIconsInVSCodeWhenUnicodeEnabled(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "vscode")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+
+	out := Render([]string{"path"}, ">", map[string]string{"path_bg": "#123456"}, Context{WorkDir: "/tmp/project"})
+	if !strings.Contains(out, folderIcon) {
+		t.Fatalf("expected glyph icons in vscode when unicode is enabled, got %q", out)
+	}
+}
+
 func assertUniqueColors(t *testing.T, colors []string) {
 	t.Helper()
 	seen := map[string]struct{}{}

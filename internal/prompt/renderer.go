@@ -1,4 +1,4 @@
-package prompt
+﻿package prompt
 
 import (
 	"fmt"
@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	userIcon              = "\uf2bd"
-	driveIcon             = "\uf0a0"
-	folderIcon            = "\uf07b"
-	timeIcon              = "\uf017"
-	errorIcon             = "\uf057"
-	segmentSeparator      = "\ue0b0" //"\ue0b0"
+	userIcon              = "👤"
+	driveIcon             = "💾"
+	folderIcon            = "📂"
+	timeIcon              = "🕜"
+	errorIcon             = "⚠️"
+	segmentSeparator      = "\ue0b0"
 	segmentSeparatorASCII = ""
 	promptLinePrefix      = "| "
 
@@ -268,7 +268,10 @@ func supportsUnicodePrompt() bool {
 }
 
 func promptIcon(icon string) string {
-	if isVSCodeTerminal() {
+	if !supportsUnicodePrompt() {
+		return ""
+	}
+	if isVSCodeTerminal() && envBool("VOID_VSCODE_EMPTY_ICONS") {
 		return ""
 	}
 	return icon
@@ -276,6 +279,15 @@ func promptIcon(icon string) string {
 
 func isVSCodeTerminal() bool {
 	return strings.EqualFold(strings.TrimSpace(os.Getenv("TERM_PROGRAM")), "vscode")
+}
+
+func envBool(name string) bool {
+	switch strings.TrimSpace(strings.ToLower(os.Getenv(name))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func labelWithOptionalIcon(icon, label string) string {

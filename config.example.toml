@@ -1,4 +1,4 @@
-# Void configuration
+﻿# Void configuration
 preset = "cyberpunk"
 
 [shell]
@@ -6,22 +6,22 @@ executable = "cmd.exe"
 args = ["/C"]
 
 [prompt]
-symbol = "❯"
+symbol = ">"
 segments = ["path", "time", "exit_code"]
 
 [palette]
-user_fg = "#f8fafc"
-user_bg = "#2563eb"
-path_fg = "#e2e8f0"
-path_bg_1 = "#0f172a"
-path_bg_2 = "#1d4ed8"
-path_bg_3 = "#0891b2"
-path_bg_4 = "#0ea5e9"
-time_fg = "#0f172a"
-time_bg = "#a7f3d0"
-exit_code_fg = "#ffffff"
-exit_code_bg = "#dc2626"
-symbol_fg = "#38bdf8"
+user_fg = "#e3f2fd"
+user_bg = "#0d47a1"
+path_fg = "#eceff1"
+path_bg_1 = "#1565c0"
+path_bg_2 = "#00695c"
+path_bg_3 = "#827717"
+path_bg_4 = "#0d47a1"
+time_fg = "#b2dfdb"
+time_bg = "#004d40"
+exit_code_fg = "#ffcdd2"
+exit_code_bg = "#b71c1c"
+symbol_fg = "#80cbc4"
 
 [history]
 path = ".void/history"
