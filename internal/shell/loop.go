@@ -124,6 +124,10 @@ func (a *App) runMeta(line string) int {
 }
 
 func (a *App) runCommand(line string) int {
+	if handled, code := a.runBuiltin(line); handled {
+		return code
+	}
+
 	cmd := exec.Command(a.cfg.Shell.Executable, append(a.cfg.Shell.Args, line)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
