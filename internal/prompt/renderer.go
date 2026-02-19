@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	folderIcon          = "DIR"
+	folderIcon          = "📁"
 	breadcrumbSeparator = " > "
 )
 
