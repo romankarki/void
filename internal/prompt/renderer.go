@@ -90,12 +90,12 @@ func renderPathParts(wd string) []string {
 		if runtime.GOOS == "windows" {
 			crumbs = append(crumbs, folderIcon)
 		} else {
-			crumbs = append(crumbs, fmt.Sprintf("%s /", folderIcon))
+			crumbs = append(crumbs, fmt.Sprintf("%s", folderIcon))
 		}
 	}
 
 	for _, part := range parts {
-		crumbs = append(crumbs, fmt.Sprintf("%s /%s", folderIcon, part))
+		crumbs = append(crumbs, fmt.Sprintf("%s %s", folderIcon, part))
 		if len(crumbs) >= maxPathBreadcrumbs {
 			break
 		}
