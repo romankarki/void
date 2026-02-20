@@ -153,6 +153,47 @@ func TestRenderExitCodeUsesErrorLabel(t *testing.T) {
 	}
 }
 
+func TestRenderUserSegmentUsesActivationLabelOverride(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+	t.Setenv("VOID_ACTIVE_LABEL", "my-app")
+	t.Setenv("CONDA_DEFAULT_ENV", "ignored-env")
+
+	out := Render([]string{"user"}, ">", map[string]string{}, Context{})
+	if !strings.Contains(out, "MY-APP") {
+		t.Fatalf("expected activation label to replace username, got %q", out)
+	}
+	if strings.Contains(out, "IGNORED-ENV") {
+		t.Fatalf("expected VOID_ACTIVE_LABEL precedence, got %q", out)
+	}
+}
+
+func TestRenderUserSegmentUsesVirtualEnvPrompt(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+	t.Setenv("VOID_ACTIVE_LABEL", "")
+	t.Setenv("VIRTUAL_ENV_PROMPT", "(api-env) ")
+
+	out := Render([]string{"user"}, ">", map[string]string{}, Context{})
+	if !strings.Contains(out, "API-ENV") {
+		t.Fatalf("expected virtual env prompt label, got %q", out)
+	}
+}
+
+func TestRenderUserSegmentUsesVirtualEnvPath(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+	t.Setenv("VOID_ACTIVE_LABEL", "")
+	t.Setenv("VIRTUAL_ENV_PROMPT", "")
+	t.Setenv("CONDA_DEFAULT_ENV", "")
+	t.Setenv("VIRTUAL_ENV", `/tmp/repo/.venv`)
+
+	out := Render([]string{"user"}, ">", map[string]string{}, Context{})
+	if !strings.Contains(out, ".VENV") {
+		t.Fatalf("expected virtual env directory name, got %q", out)
+	}
+}
+
 func TestAnsiRGBRejectsInvalidColor(t *testing.T) {
 	if got := ansiRGB("38", "blue"); got != "" {
 		t.Fatalf("expected empty for invalid color, got %q", got)
@@ -168,12 +209,12 @@ func TestRenderFallsBackToASCIIWhenDisabled(t *testing.T) {
 		"path_bg_1": "#123456",
 		"path_bg_2": "#345678",
 	}
-	out := Render([]string{"path"}, "❯", palette, Context{WorkDir: "/tmp/project"})
+	out := Render([]string{"path"}, "\u276f", palette, Context{WorkDir: "/tmp/project"})
 
 	if segmentSeparator != "" && strings.Contains(out, segmentSeparator) {
 		t.Fatalf("expected ASCII separator fallback in vscode, got %q", out)
 	}
-	if strings.Contains(out, "❯") {
+	if strings.Contains(out, "\u276f") {
 		t.Fatalf("expected ASCII symbol fallback in vscode, got %q", out)
 	}
 	if !strings.Contains(out, ">") {
@@ -184,13 +225,64 @@ func TestRenderFallsBackToASCIIWhenDisabled(t *testing.T) {
 	}
 }
 
+func TestRenderFallsBackToASCIIByDefaultInVSCode(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "vscode")
+	t.Setenv("VOID_PROMPT_UNICODE", "")
+
+	palette := map[string]string{
+		"path_fg":   "#ffffff",
+		"path_bg_1": "#123456",
+		"path_bg_2": "#345678",
+	}
+	out := Render([]string{"path"}, "\u276f", palette, Context{WorkDir: "/tmp/project"})
+
+	if segmentSeparator != "" && strings.Contains(out, segmentSeparator) {
+		t.Fatalf("expected ASCII separator fallback by default in vscode, got %q", out)
+	}
+	if strings.Contains(out, "\u276f") {
+		t.Fatalf("expected ASCII symbol fallback by default in vscode, got %q", out)
+	}
+	if !strings.Contains(out, ">") {
+		t.Fatalf("expected ASCII prompt symbol in vscode default fallback, got %q", out)
+	}
+	if strings.Contains(out, folderIcon) {
+		t.Fatalf("expected icons to be hidden in vscode default fallback, got %q", out)
+	}
+}
+
 func TestRenderKeepsIconsInVSCodeWhenUnicodeEnabled(t *testing.T) {
 	t.Setenv("TERM_PROGRAM", "vscode")
 	t.Setenv("VOID_PROMPT_UNICODE", "1")
 
 	out := Render([]string{"path"}, ">", map[string]string{"path_bg": "#123456"}, Context{WorkDir: "/tmp/project"})
+	if isLikelyMojibakeIcon(folderIcon) {
+		if strings.Contains(out, folderIcon) {
+			t.Fatalf("expected mojibake icon fallback in vscode, got %q", out)
+		}
+		return
+	}
 	if !strings.Contains(out, folderIcon) {
 		t.Fatalf("expected glyph icons in vscode when unicode is enabled, got %q", out)
+	}
+}
+
+func TestPromptIconFallsBackForMojibakeInVSCode(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "vscode")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+
+	if got := promptIcon("\u00f0\u0178\u2018\u00a4"); got != "" {
+		t.Fatalf("expected mojibake icon fallback, got %q", got)
+	}
+	if got := promptIcon("\u00c3\u00b0\u00c5\u00b8\u00e2\u20ac\u02dc\u00c2\u00a4"); got != "" {
+		t.Fatalf("expected mojibake icon fallback, got %q", got)
+	}
+}
+
+func TestPromptIconKeepsValidUnicodeInVSCode(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "vscode")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+	if got := promptIcon("\U0001F4C2"); got == "" {
+		t.Fatalf("expected valid unicode icon to be kept in vscode")
 	}
 }
 

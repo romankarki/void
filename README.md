@@ -116,6 +116,28 @@ Then append the output to your shell profile:
 
 This makes the same Void prompt style available in Windows Terminal, VS Code integrated terminals, and other shell hosts that use those profiles.
 
+### Show activation label in place of username (Windows)
+
+You can surface an active profile/environment name in the `user` segment by setting `VOID_ACTIVE_LABEL`.
+
+Use the included script from the project root:
+
+```bat
+call activate.bat
+```
+
+Or pass a custom label:
+
+```bat
+call activate.bat backend
+```
+
+Clear the label in the same terminal:
+
+```bat
+set VOID_ACTIVE_LABEL=
+```
+
 ## Development
 
 Run checks:

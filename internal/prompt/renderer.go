@@ -13,12 +13,19 @@ import (
 )
 
 const (
-	userIcon              = "👤"
-	driveIcon             = "💾"
-	folderIcon            = "📂"
-	timeIcon              = "🕜"
-	errorIcon             = "⚠️"
-	segmentSeparator      = "\ue0b0"
+	// userIcon              = "\U0001F464"
+	// driveIcon             = "\U0001F4BE"
+	// folderIcon            = "\U0001F4C2"
+	// timeIcon              = "\u23F0"
+	// errorIcon             = "\u26A0\uFE0F"
+	// segmentSeparator      = "\ue0b0"
+
+	userIcon              = ""
+	driveIcon             = ""
+	folderIcon            = ""
+	timeIcon              = ""
+	errorIcon             = ""
+	segmentSeparator      = ""
 	segmentSeparatorASCII = ""
 	promptLinePrefix      = "| "
 	iconLabelGap          = "  "
@@ -48,8 +55,8 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 	for _, segment := range segments {
 		switch segment {
 		case "user":
-			if u, err := user.Current(); err == nil {
-				rendered = append(rendered, newSegment("user", labelWithOptionalIcon(userPromptIcon, strings.ToUpper(u.Username)), palette))
+			if userLabel := resolveUserSegmentLabel(); userLabel != "" {
+				rendered = append(rendered, newSegment("user", labelWithOptionalIcon(userPromptIcon, userLabel), palette))
 			}
 		case "path":
 			wd := ctx.WorkDir
@@ -155,6 +162,52 @@ func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 	}
 
 	return segments
+}
+
+func resolveUserSegmentLabel() string {
+	if label := strings.TrimSpace(os.Getenv("VOID_ACTIVE_LABEL")); label != "" {
+		return strings.ToUpper(label)
+	}
+
+	if label := parseVirtualEnvPromptLabel(os.Getenv("VIRTUAL_ENV_PROMPT")); label != "" {
+		return strings.ToUpper(label)
+	}
+
+	if label := strings.TrimSpace(os.Getenv("CONDA_DEFAULT_ENV")); label != "" {
+		return strings.ToUpper(label)
+	}
+
+	if venvPath := strings.TrimSpace(os.Getenv("VIRTUAL_ENV")); venvPath != "" {
+		base := strings.TrimSpace(filepath.Base(filepath.Clean(venvPath)))
+		if base != "" && base != "." && base != string(filepath.Separator) {
+			return strings.ToUpper(base)
+		}
+	}
+
+	if u, err := user.Current(); err == nil {
+		if username := strings.TrimSpace(u.Username); username != "" {
+			return strings.ToUpper(username)
+		}
+	}
+
+	return ""
+}
+
+func parseVirtualEnvPromptLabel(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(trimmed, "(") {
+		if end := strings.Index(trimmed, ")"); end > 1 {
+			if label := strings.TrimSpace(trimmed[1:end]); label != "" {
+				return label
+			}
+		}
+	}
+
+	return trimmed
 }
 
 func pathGradient(palette map[string]string) []string {
@@ -265,6 +318,12 @@ func supportsUnicodePrompt() bool {
 		return false
 	}
 
+	// VS Code integrated terminals frequently run with fonts/code pages that
+	// break emoji/powerline glyphs. Prefer ASCII unless explicitly overridden.
+	if isVSCodeTerminal() {
+		return false
+	}
+
 	return true
 }
 
@@ -273,6 +332,9 @@ func promptIcon(icon string) string {
 		return ""
 	}
 	if isVSCodeTerminal() && envBool("VOID_VSCODE_EMPTY_ICONS") {
+		return ""
+	}
+	if isVSCodeTerminal() && isLikelyMojibakeIcon(icon) {
 		return ""
 	}
 	return icon
@@ -289,6 +351,39 @@ func envBool(name string) bool {
 	default:
 		return false
 	}
+}
+
+func isLikelyMojibakeIcon(icon string) bool {
+	s := strings.TrimSpace(icon)
+	if s == "" {
+		return false
+	}
+
+	// Common mojibake runes when UTF-8 glyph bytes are decoded as Windows-1252.
+	// Values are code points to keep this file encoding-safe.
+	for _, r := range s {
+		if r < 0x20 || (r >= 0x7f && r <= 0x9f) {
+			return true
+		}
+		switch r {
+		case 0x00C3, // Ã
+			0x00C2, // Â
+			0x00E2, // â
+			0x00F0, // ð
+			0x0178, // Ÿ
+			0x00EF, // ï
+			0x00B8, // ¸
+			0x2018, // ‘
+			0x00A4, // ¤
+			0x20AC, // €
+			0x2122, // ™
+			0x0153, // œ
+			0x0161, // š
+			0x017E: // ž
+			return true
+		}
+	}
+	return false
 }
 
 func labelWithOptionalIcon(icon, label string) string {
