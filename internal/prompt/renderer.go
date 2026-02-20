@@ -16,7 +16,7 @@ const (
 	userIcon         = "\U0001F464"
 	driveIcon        = "\U0001F4BE"
 	folderIcon       = "\U0001F4C2"
-	timeIcon         = "\u23F0"
+	timeIcon         = "🕜" //"\u23F0"
 	errorIcon        = "\u26A0\uFE0F"
 	segmentSeparator = "\ue0b0"
 

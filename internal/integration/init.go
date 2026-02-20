@@ -53,8 +53,10 @@ function __void_render_prompt([int]$code, [string]$workdir) {
 
 $global:__void_last_exit = 0
 function prompt {
+    $lastCommandSucceeded = $?
     $code = $global:LASTEXITCODE
     if ($null -eq $code) { $code = 0 }
+    if (-not $lastCommandSucceeded -and $code -eq 0) { $code = 1 }
     $global:__void_last_exit = $code
     __void_render_prompt -code $code -workdir $PWD.Path
 }`
