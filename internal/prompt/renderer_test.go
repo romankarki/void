@@ -225,7 +225,7 @@ func TestRenderFallsBackToASCIIWhenDisabled(t *testing.T) {
 	}
 }
 
-func TestRenderFallsBackToASCIIByDefaultInVSCode(t *testing.T) {
+func TestRenderUsesUnicodeByDefaultInVSCode(t *testing.T) {
 	t.Setenv("TERM_PROGRAM", "vscode")
 	t.Setenv("VOID_PROMPT_UNICODE", "")
 
@@ -236,17 +236,14 @@ func TestRenderFallsBackToASCIIByDefaultInVSCode(t *testing.T) {
 	}
 	out := Render([]string{"path"}, "\u276f", palette, Context{WorkDir: "/tmp/project"})
 
-	if segmentSeparator != "" && strings.Contains(out, segmentSeparator) {
-		t.Fatalf("expected ASCII separator fallback by default in vscode, got %q", out)
+	if segmentSeparator != "" && !strings.Contains(out, segmentSeparator) {
+		t.Fatalf("expected unicode separator by default in vscode, got %q", out)
 	}
-	if strings.Contains(out, "\u276f") {
-		t.Fatalf("expected ASCII symbol fallback by default in vscode, got %q", out)
+	if !strings.Contains(out, "\u276f") {
+		t.Fatalf("expected unicode symbol by default in vscode, got %q", out)
 	}
-	if !strings.Contains(out, ">") {
-		t.Fatalf("expected ASCII prompt symbol in vscode default fallback, got %q", out)
-	}
-	if strings.Contains(out, folderIcon) {
-		t.Fatalf("expected icons to be hidden in vscode default fallback, got %q", out)
+	if !strings.Contains(out, folderIcon) {
+		t.Fatalf("expected icons to be shown by default in vscode unicode mode, got %q", out)
 	}
 }
 

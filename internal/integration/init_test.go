@@ -37,6 +37,10 @@ func TestPowershellInitScriptSetsUTF8Encoding(t *testing.T) {
 		"[Console]::InputEncoding = $utf8NoBom",
 		"[Console]::OutputEncoding = $utf8NoBom",
 		"$OutputEncoding = $utf8NoBom",
+		"function __void_render_prompt",
+		"$process.StandardOutput.BaseStream.CopyTo($stdout)",
+		"[System.Text.Encoding]::UTF8.GetString($stdout.ToArray())",
+		"__void_render_prompt -code $code -workdir $PWD.Path",
 	}
 
 	for _, check := range checks {

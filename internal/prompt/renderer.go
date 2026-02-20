@@ -13,19 +13,19 @@ import (
 )
 
 const (
-	// userIcon              = "\U0001F464"
-	// driveIcon             = "\U0001F4BE"
-	// folderIcon            = "\U0001F4C2"
-	// timeIcon              = "\u23F0"
-	// errorIcon             = "\u26A0\uFE0F"
-	// segmentSeparator      = "\ue0b0"
+	userIcon         = "\U0001F464"
+	driveIcon        = "\U0001F4BE"
+	folderIcon       = "\U0001F4C2"
+	timeIcon         = "\u23F0"
+	errorIcon        = "\u26A0\uFE0F"
+	segmentSeparator = "\ue0b0"
 
-	userIcon              = ""
-	driveIcon             = ""
-	folderIcon            = ""
-	timeIcon              = ""
-	errorIcon             = ""
-	segmentSeparator      = ""
+	// userIcon              = ""
+	// driveIcon             = ""
+	// folderIcon            = ""
+	// timeIcon              = ""
+	// errorIcon             = ""
+	// segmentSeparator      = ""
 	segmentSeparatorASCII = ""
 	promptLinePrefix      = "| "
 	iconLabelGap          = "  "
@@ -317,13 +317,6 @@ func supportsUnicodePrompt() bool {
 	case "0", "false", "no", "off":
 		return false
 	}
-
-	// VS Code integrated terminals frequently run with fonts/code pages that
-	// break emoji/powerline glyphs. Prefer ASCII unless explicitly overridden.
-	if isVSCodeTerminal() {
-		return false
-	}
-
 	return true
 }
 

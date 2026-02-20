@@ -28,12 +28,35 @@ func powershellScript() string {
 [Console]::OutputEncoding = $utf8NoBom
 $OutputEncoding = $utf8NoBom
 
+function __void_render_prompt([int]$code, [string]$workdir) {
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = "void"
+        $escapedWorkdir = $workdir -replace '"', '\"'
+        $psi.Arguments = ('prompt --last-exit-code {0} --workdir "{1}"' -f $code, $escapedWorkdir)
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $true
+
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $psi
+        [void]$process.Start()
+
+        $stdout = New-Object System.IO.MemoryStream
+        $process.StandardOutput.BaseStream.CopyTo($stdout)
+        $process.WaitForExit()
+
+        return [System.Text.Encoding]::UTF8.GetString($stdout.ToArray())
+    } catch {
+        return "> "
+    }
+}
+
 $global:__void_last_exit = 0
 function prompt {
     $code = $global:LASTEXITCODE
     if ($null -eq $code) { $code = 0 }
     $global:__void_last_exit = $code
-    void prompt --last-exit-code $code --workdir "$PWD"
+    __void_render_prompt -code $code -workdir $PWD.Path
 }`
 }
 
