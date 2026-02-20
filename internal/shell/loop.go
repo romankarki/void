@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/void-shell/void/internal/autocomplete"
@@ -139,6 +143,9 @@ func (a *App) runCommand(line string) int {
 	if handled, code := a.runBuiltin(line); handled {
 		return code
 	}
+	if handled, code := a.runCommandWithEnvSync(line); handled {
+		return code
+	}
 
 	cmd := exec.Command(a.cfg.Shell.Executable, append(a.cfg.Shell.Args, line)...)
 	cmd.Stdin = os.Stdin
@@ -154,6 +161,208 @@ func (a *App) runCommand(line string) int {
 		return 1
 	}
 	return 0
+}
+
+func (a *App) runCommandWithEnvSync(line string) (bool, int) {
+	if !isCmdShellExecutable(a.cfg.Shell.Executable) || !isActivationCommand(line) {
+		return false, 0
+	}
+
+	const marker = "__VOID_ENV_SYNC_BEGIN__"
+	wrapped := line + ` & set "__VOID_EXIT_CODE=!ERRORLEVEL!" & echo ` + marker + ` & set`
+	cmd := exec.Command(a.cfg.Shell.Executable, "/V:ON", "/C", wrapped)
+	cmd.Stdin = os.Stdin
+
+	outBytes, err := cmd.CombinedOutput()
+	output := string(outBytes)
+	preOutput, envBlock, found := splitEnvSyncOutput(output, marker)
+	if preOutput != "" {
+		fmt.Print(preOutput)
+	}
+
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			a.recordError(fmt.Sprintf("command %q exited with code %d", line, exitErr.ExitCode()))
+			a.printCopyErrorHint()
+			return true, exitErr.ExitCode()
+		}
+		a.reportError(fmt.Sprintf("void: run command: %v", err))
+		return true, 1
+	}
+
+	if !found {
+		return true, 0
+	}
+
+	envSnapshot := parseCmdSetOutput(envBlock)
+	exitCode := parseExitCode(envSnapshot)
+	deleteEnvKeyCaseInsensitive(envSnapshot, "__VOID_EXIT_CODE")
+	applyEnvironmentSnapshot(envSnapshot)
+
+	if exitCode != 0 {
+		a.recordError(fmt.Sprintf("command %q exited with code %d", line, exitCode))
+		a.printCopyErrorHint()
+	}
+	return true, exitCode
+}
+
+func isCmdShellExecutable(executable string) bool {
+	base := strings.ToLower(filepath.Base(strings.TrimSpace(executable)))
+	return base == "cmd" || base == "cmd.exe"
+}
+
+func isActivationCommand(line string) bool {
+	lower := strings.ToLower(strings.TrimSpace(line))
+	if lower == "" {
+		return false
+	}
+	if strings.Contains(lower, "activate.bat") {
+		return true
+	}
+	if strings.Contains(lower, `\scripts\activate`) || strings.Contains(lower, `/scripts/activate`) {
+		return true
+	}
+	if strings.HasPrefix(lower, "conda activate ") || strings.HasPrefix(lower, "conda deactivate") {
+		return true
+	}
+	if lower == "deactivate" || strings.HasPrefix(lower, "deactivate ") {
+		return true
+	}
+	if strings.HasPrefix(lower, "call ") {
+		target := strings.TrimSpace(strings.TrimPrefix(lower, "call "))
+		if strings.Contains(target, "activate") || strings.HasPrefix(target, "deactivate") {
+			return true
+		}
+	}
+	return false
+}
+
+func splitEnvSyncOutput(output, marker string) (string, string, bool) {
+	idx := strings.Index(output, marker)
+	if idx == -1 {
+		return output, "", false
+	}
+	pre := output[:idx]
+	post := output[idx+len(marker):]
+	post = strings.TrimLeft(post, "\r\n")
+	return pre, post, true
+}
+
+func parseCmdSetOutput(block string) map[string]string {
+	env := map[string]string{}
+	lines := strings.Split(block, "\n")
+	for _, line := range lines {
+		line = strings.TrimRight(line, "\r")
+		if line == "" {
+			continue
+		}
+		idx := strings.Index(line, "=")
+		if idx <= 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:idx])
+		if key == "" || strings.HasPrefix(key, "=") {
+			continue
+		}
+		env[key] = line[idx+1:]
+	}
+	return env
+}
+
+func parseExitCode(env map[string]string) int {
+	for key, value := range env {
+		if strings.EqualFold(key, "__VOID_EXIT_CODE") {
+			code, err := strconv.Atoi(strings.TrimSpace(value))
+			if err != nil {
+				return 0
+			}
+			return code
+		}
+	}
+	return 0
+}
+
+func deleteEnvKeyCaseInsensitive(env map[string]string, key string) {
+	for existing := range env {
+		if strings.EqualFold(existing, key) {
+			delete(env, existing)
+		}
+	}
+}
+
+func applyEnvironmentSnapshot(snapshot map[string]string) {
+	setVars, unsetVars := diffEnvironment(os.Environ(), snapshot)
+	for key, value := range setVars {
+		_ = os.Setenv(key, value)
+	}
+	for _, key := range unsetVars {
+		_ = os.Unsetenv(key)
+	}
+}
+
+func diffEnvironment(current []string, snapshot map[string]string) (map[string]string, []string) {
+	currentEnv := normalizeEnvironment(current)
+	nextEnv := normalizeEnvironmentFromMap(snapshot)
+
+	setVars := map[string]string{}
+	unsetVars := make([]string, 0)
+
+	for normKey, next := range nextEnv {
+		cur, exists := currentEnv[normKey]
+		if !exists || cur.value != next.value || cur.key != next.key {
+			setVars[next.key] = next.value
+		}
+	}
+	for normKey, cur := range currentEnv {
+		if _, exists := nextEnv[normKey]; !exists {
+			unsetVars = append(unsetVars, cur.key)
+		}
+	}
+	sort.Strings(unsetVars)
+
+	return setVars, unsetVars
+}
+
+type envEntry struct {
+	key   string
+	value string
+}
+
+func normalizeEnvironment(entries []string) map[string]envEntry {
+	env := map[string]envEntry{}
+	for _, entry := range entries {
+		idx := strings.Index(entry, "=")
+		if idx <= 0 {
+			continue
+		}
+		key := strings.TrimSpace(entry[:idx])
+		if key == "" || strings.HasPrefix(key, "=") {
+			continue
+		}
+		norm := normalizeEnvKey(key)
+		env[norm] = envEntry{key: key, value: entry[idx+1:]}
+	}
+	return env
+}
+
+func normalizeEnvironmentFromMap(entries map[string]string) map[string]envEntry {
+	env := map[string]envEntry{}
+	for key, value := range entries {
+		key = strings.TrimSpace(key)
+		if key == "" || strings.HasPrefix(key, "=") {
+			continue
+		}
+		norm := normalizeEnvKey(key)
+		env[norm] = envEntry{key: key, value: value}
+	}
+	return env
+}
+
+func normalizeEnvKey(key string) string {
+	if runtime.GOOS == "windows" {
+		return strings.ToUpper(key)
+	}
+	return key
 }
 
 func (a *App) recordError(message string) {

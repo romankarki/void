@@ -78,3 +78,71 @@ func TestRunCommandRecordsExitCodeMessage(t *testing.T) {
 		t.Fatalf("expected stored exit code summary, got %q", app.lastError)
 	}
 }
+
+func TestIsActivationCommand(t *testing.T) {
+	cases := []struct {
+		line string
+		want bool
+	}{
+		{line: `call .venv\Scripts\activate.bat`, want: true},
+		{line: `.venv\Scripts\activate`, want: true},
+		{line: `deactivate`, want: true},
+		{line: `conda activate base`, want: true},
+		{line: `echo hello`, want: false},
+	}
+	for _, tc := range cases {
+		if got := isActivationCommand(tc.line); got != tc.want {
+			t.Fatalf("isActivationCommand(%q) = %v, want %v", tc.line, got, tc.want)
+		}
+	}
+}
+
+func TestParseCmdSetOutputAndExitCode(t *testing.T) {
+	block := "PATH=C:\\\\Windows\r\nVIRTUAL_ENV=C:\\\\repo\\\\.venv\r\n__VOID_EXIT_CODE=9\r\n"
+	env := parseCmdSetOutput(block)
+	if env["PATH"] != "C:\\\\Windows" {
+		t.Fatalf("expected PATH to be parsed, got %#v", env)
+	}
+	if env["VIRTUAL_ENV"] != "C:\\\\repo\\\\.venv" {
+		t.Fatalf("expected VIRTUAL_ENV to be parsed, got %#v", env)
+	}
+	if code := parseExitCode(env); code != 9 {
+		t.Fatalf("expected exit code 9, got %d", code)
+	}
+	deleteEnvKeyCaseInsensitive(env, "__void_exit_code")
+	if _, ok := env["__VOID_EXIT_CODE"]; ok {
+		t.Fatalf("expected sync-only exit variable to be deleted")
+	}
+}
+
+func TestDiffEnvironmentCaseInsensitiveOnWindows(t *testing.T) {
+	current := []string{
+		"Path=C:\\Windows",
+		"VIRTUAL_ENV=C:\\repo\\.venv",
+		"KEEP=1",
+	}
+	snapshot := map[string]string{
+		"PATH":              "C:\\repo\\.venv\\Scripts;C:\\Windows",
+		"CONDA_DEFAULT_ENV": "base",
+		"KEEP":              "1",
+	}
+	setVars, unsetVars := diffEnvironment(current, snapshot)
+
+	if got := setVars["PATH"]; got != "C:\\repo\\.venv\\Scripts;C:\\Windows" {
+		t.Fatalf("expected PATH update, got %#v", setVars)
+	}
+	if got := setVars["CONDA_DEFAULT_ENV"]; got != "base" {
+		t.Fatalf("expected CONDA_DEFAULT_ENV to be added, got %#v", setVars)
+	}
+
+	hasVirtualEnvUnset := false
+	for _, key := range unsetVars {
+		if strings.EqualFold(key, "VIRTUAL_ENV") {
+			hasVirtualEnvUnset = true
+			break
+		}
+	}
+	if !hasVirtualEnvUnset {
+		t.Fatalf("expected VIRTUAL_ENV to be unset, got %#v", unsetVars)
+	}
+}
