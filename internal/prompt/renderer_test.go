@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"os/user"
 	"strings"
 	"testing"
 )
@@ -191,6 +192,74 @@ func TestRenderUserSegmentUsesVirtualEnvPath(t *testing.T) {
 	out := Render([]string{"user"}, ">", map[string]string{}, Context{})
 	if !strings.Contains(out, ".VENV") {
 		t.Fatalf("expected virtual env directory name, got %q", out)
+	}
+}
+
+func TestResolveUserSegmentLabelUsesGitBranchWhenAvailable(t *testing.T) {
+	t.Setenv("VOID_ACTIVE_LABEL", "")
+	t.Setenv("VIRTUAL_ENV_PROMPT", "")
+	t.Setenv("CONDA_DEFAULT_ENV", "")
+	t.Setenv("VIRTUAL_ENV", "")
+
+	origGit := resolveGitBranchForDir
+	origUser := resolveCurrentUser
+	origHost := resolveHostname
+	t.Cleanup(func() {
+		resolveGitBranchForDir = origGit
+		resolveCurrentUser = origUser
+		resolveHostname = origHost
+	})
+
+	resolveGitBranchForDir = func(string) (string, error) { return "main", nil }
+	resolveCurrentUser = func() (*user.User, error) { return &user.User{Username: "asus"}, nil }
+	resolveHostname = func() (string, error) { return "laptop", nil }
+
+	got := resolveUserSegmentLabel("/tmp/repo")
+	if got != "main" {
+		t.Fatalf("expected git branch label, got %q", got)
+	}
+}
+
+func TestResolveUserSegmentLabelCombinesVenvAndGitBranch(t *testing.T) {
+	t.Setenv("VOID_ACTIVE_LABEL", "")
+	t.Setenv("VIRTUAL_ENV_PROMPT", "(api-env)")
+	t.Setenv("CONDA_DEFAULT_ENV", "")
+	t.Setenv("VIRTUAL_ENV", "")
+
+	origGit := resolveGitBranchForDir
+	t.Cleanup(func() {
+		resolveGitBranchForDir = origGit
+	})
+	resolveGitBranchForDir = func(string) (string, error) { return "main", nil }
+
+	got := resolveUserSegmentLabel("/tmp/repo")
+	if got != "API-ENV | main" {
+		t.Fatalf("expected venv + git branch label, got %q", got)
+	}
+}
+
+func TestResolveUserSegmentLabelFallsBackToSystemIdentity(t *testing.T) {
+	t.Setenv("VOID_ACTIVE_LABEL", "")
+	t.Setenv("VIRTUAL_ENV_PROMPT", "")
+	t.Setenv("CONDA_DEFAULT_ENV", "")
+	t.Setenv("VIRTUAL_ENV", "")
+
+	origGit := resolveGitBranchForDir
+	origUser := resolveCurrentUser
+	origHost := resolveHostname
+	t.Cleanup(func() {
+		resolveGitBranchForDir = origGit
+		resolveCurrentUser = origUser
+		resolveHostname = origHost
+	})
+
+	resolveGitBranchForDir = func(string) (string, error) { return "", nil }
+	resolveCurrentUser = func() (*user.User, error) { return &user.User{Username: "asus"}, nil }
+	resolveHostname = func() (string, error) { return "laptop", nil }
+
+	got := resolveUserSegmentLabel("")
+	if got != "LAPTOP\\ASUS" {
+		t.Fatalf("expected system identity fallback, got %q", got)
 	}
 }
 

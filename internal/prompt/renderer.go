@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -13,18 +14,18 @@ import (
 )
 
 const (
-	userIcon         = "\U0001F464"
-	driveIcon        = "\U0001F4BE"
-	folderIcon       = "\U0001F4C2"
-	timeIcon         = "🕜" //"\u23F0"
-	errorIcon        = "\u26A0\uFE0F"
+	// userIcon         = "💻" //"\U0001F464"
+	// driveIcon        = "\U0001F4BE"
+	// folderIcon       = "\U0001F4C2"
+	// timeIcon         = "🕜" //"\u23F0"
+	// errorIcon        = "\u26A0\uFE0F"
 	segmentSeparator = "\ue0b0"
 
-	// userIcon              = ""
-	// driveIcon             = ""
-	// folderIcon            = ""
-	// timeIcon              = ""
-	// errorIcon             = ""
+	userIcon              = ""
+	driveIcon             = ""
+	folderIcon            = ""
+	timeIcon              = ""
+	errorIcon             = ""
 	// segmentSeparator      = ""
 	segmentSeparatorASCII = ""
 	promptLinePrefix      = "| "
@@ -45,6 +46,12 @@ type renderSegment struct {
 	bg   string
 }
 
+var (
+	resolveGitBranchForDir = detectGitBranchForDir
+	resolveCurrentUser     = user.Current
+	resolveHostname        = os.Hostname
+)
+
 func Render(segments []string, symbol string, palette map[string]string, ctx Context) string {
 	unicodeOK := supportsUnicodePrompt()
 	userPromptIcon := promptIcon(userIcon)
@@ -55,7 +62,7 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 	for _, segment := range segments {
 		switch segment {
 		case "user":
-			if userLabel := resolveUserSegmentLabel(); userLabel != "" {
+			if userLabel := resolveUserSegmentLabel(ctx.WorkDir); userLabel != "" {
 				rendered = append(rendered, newSegment("user", labelWithOptionalIcon(userPromptIcon, userLabel), palette))
 			}
 		case "path":
@@ -164,33 +171,107 @@ func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 	return segments
 }
 
-func resolveUserSegmentLabel() string {
+func resolveUserSegmentLabel(workDir string) string {
+	envLabel := resolveActiveEnvLabel()
+	branchLabel := resolveGitBranchLabel(workDir)
+
+	if branchLabel != "" {
+		if envLabel != "" {
+			return strings.ToUpper(envLabel) + " | " + branchLabel
+		}
+		return branchLabel
+	}
+	if envLabel != "" {
+		return strings.ToUpper(envLabel)
+	}
+	return resolveSystemIdentityLabel()
+}
+
+func resolveActiveEnvLabel() string {
 	if label := strings.TrimSpace(os.Getenv("VOID_ACTIVE_LABEL")); label != "" {
-		return strings.ToUpper(label)
+		return label
 	}
 
 	if label := parseVirtualEnvPromptLabel(os.Getenv("VIRTUAL_ENV_PROMPT")); label != "" {
-		return strings.ToUpper(label)
+		return label
 	}
 
 	if label := strings.TrimSpace(os.Getenv("CONDA_DEFAULT_ENV")); label != "" {
-		return strings.ToUpper(label)
+		return label
 	}
 
 	if venvPath := strings.TrimSpace(os.Getenv("VIRTUAL_ENV")); venvPath != "" {
 		base := strings.TrimSpace(filepath.Base(filepath.Clean(venvPath)))
 		if base != "" && base != "." && base != string(filepath.Separator) {
-			return strings.ToUpper(base)
-		}
-	}
-
-	if u, err := user.Current(); err == nil {
-		if username := strings.TrimSpace(u.Username); username != "" {
-			return strings.ToUpper(username)
+			return base
 		}
 	}
 
 	return ""
+}
+
+func resolveGitBranchLabel(workDir string) string {
+	dir := strings.TrimSpace(workDir)
+	if dir == "" {
+		if wd, err := os.Getwd(); err == nil {
+			dir = wd
+		}
+	}
+	if dir == "" {
+		return ""
+	}
+
+	branch, err := resolveGitBranchForDir(dir)
+	if err != nil {
+		return ""
+	}
+	branch = strings.TrimSpace(branch)
+	if branch == "" || strings.EqualFold(branch, "HEAD") {
+		return ""
+	}
+	return branch
+}
+
+func resolveSystemIdentityLabel() string {
+	username := ""
+	if u, err := resolveCurrentUser(); err == nil && u != nil {
+		username = strings.TrimSpace(u.Username)
+	}
+	if username == "" {
+		username = strings.TrimSpace(os.Getenv("USERNAME"))
+	}
+	if username == "" {
+		username = strings.TrimSpace(os.Getenv("USER"))
+	}
+
+	host := ""
+	if h, err := resolveHostname(); err == nil {
+		host = strings.TrimSpace(h)
+	}
+
+	switch {
+	case username != "":
+		if strings.Contains(username, `\`) || strings.Contains(username, "@") {
+			return strings.ToUpper(username)
+		}
+		if host != "" {
+			return strings.ToUpper(host + `\` + username)
+		}
+		return strings.ToUpper(username)
+	case host != "":
+		return strings.ToUpper(host)
+	default:
+		return ""
+	}
+}
+
+func detectGitBranchForDir(dir string) (string, error) {
+	cmd := exec.Command("git", "-C", dir, "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
 }
 
 func parseVirtualEnvPromptLabel(raw string) string {

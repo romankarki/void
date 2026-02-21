@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/void-shell/void/internal/config"
 )
@@ -13,6 +14,8 @@ var presetMap = map[string]string{
 	"cyberpunk": "cyberpunk.toml",
 }
 
+var executablePath = os.Executable
+
 func ApplyPreset(cfg config.Config) (config.Config, error) {
 	if cfg.Preset == "" {
 		return cfg, nil
@@ -21,7 +24,10 @@ func ApplyPreset(cfg config.Config) (config.Config, error) {
 	if !ok {
 		return cfg, fmt.Errorf("unknown preset: %s", cfg.Preset)
 	}
-	presetPath := filepath.Join("presets", file)
+	presetPath, err := resolvePresetPath(file)
+	if err != nil {
+		return cfg, err
+	}
 	themeCfg, _, err := config.Load(presetPath)
 	if err != nil {
 		return cfg, err
@@ -35,8 +41,23 @@ func ApplyPreset(cfg config.Config) (config.Config, error) {
 	for k, v := range themeCfg.Palette {
 		cfg.Palette[k] = v
 	}
-	if _, err := os.Stat(presetPath); err != nil {
-		return cfg, err
-	}
 	return cfg, nil
+}
+
+func resolvePresetPath(file string) (string, error) {
+	candidates := []string{filepath.Join("presets", file)}
+	if exe, err := executablePath(); err == nil && strings.TrimSpace(exe) != "" {
+		exeCandidate := filepath.Join(filepath.Dir(exe), "presets", file)
+		if exeCandidate != candidates[0] {
+			candidates = append(candidates, exeCandidate)
+		}
+	}
+
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("preset file %q not found (looked in: %s)", file, strings.Join(candidates, ", "))
 }

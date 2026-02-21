@@ -11,7 +11,7 @@ segments = ["path", "time", "exit_code"]
 
 [palette]
 user_fg = "#e3f2fd"
-user_bg = "#0d47a1"
+user_bg = "#ff6347"
 path_fg = "#eceff1"
 path_bg_1 = "#1565c0"
 path_bg_2 = "#00695c"
