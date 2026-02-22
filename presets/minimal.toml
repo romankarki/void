@@ -1,7 +1,8 @@
 [prompt]
-symbol = ">"
+symbol = "▶"
 segments = ["path"]
 
 [palette]
-path_fg = "#d0d0d0"
-symbol_fg = "#d0d0d0"
+path_fg = "#a0a0a0"
+path_bg = "#1e1e1e"
+symbol_fg = "#808080"

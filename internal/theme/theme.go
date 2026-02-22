@@ -12,6 +12,7 @@ import (
 var presetMap = map[string]string{
 	"minimal":   "minimal.toml",
 	"cyberpunk": "cyberpunk.toml",
+	"hacker":    "hacker.toml",
 }
 
 var executablePath = os.Executable
