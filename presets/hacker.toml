@@ -7,7 +7,7 @@ user_fg = "#ffffff"
 user_bg = "#6200ea"
 
 git_fg = "#ffffff"
-git_bg = "#00c853"
+git_bg = "#00a844"
 
 path_fg = "#ffffff"
 path_bg_1 = "#00b0ff"
