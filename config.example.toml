@@ -1,4 +1,4 @@
-﻿# Void configuration
+# Void configuration
 preset = "hacker"
 
 [shell]
@@ -6,21 +6,26 @@ executable = "cmd.exe"
 args = ["/C"]
 
 [prompt]
-symbol = "▶"
-segments = ["path", "time", "exit_code"]
+symbol = "❯"
+segments = ["user", "git", "path", "time", "exit_code"]
 
 [palette]
 user_fg = "#ffffff"
-user_bg = "#1a1a2e"
-path_fg = "#c0c0c0"
-path_bg_1 = "#16213e"
-path_bg_2 = "#1a1a2e"
-path_bg_3 = "#0f3460"
-time_fg = "#8892b0"
-time_bg = "#1a1a2e"
-exit_code_fg = "#ff6b6b"
-exit_code_bg = "#2d132c"
-symbol_fg = "#64ffda"
+user_bg = "#6200ea"
+git_fg = "#ffffff"
+git_bg = "#00c853"
+path_fg = "#ffffff"
+path_bg_1 = "#00b0ff"
+path_bg_2 = "#00bfa5"
+path_bg_3 = "#ff0097"
+path_bg_4 = "#aa00ff"
+path_bg_5 = "#00c853"
+path_bg_6 = "#ff6d00"
+time_fg = "#ffffff"
+time_bg = "#6200ea"
+exit_code_fg = "#ffffff"
+exit_code_bg = "#d50000"
+symbol_fg = "#00e676"
 
 [history]
 path = ".void/history"

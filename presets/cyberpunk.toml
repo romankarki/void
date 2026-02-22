@@ -1,10 +1,13 @@
 [prompt]
 symbol = "▶"
-segments = ["user", "path", "exit_code", "time"]
+segments = ["user", "git", "path", "exit_code", "time"]
 
 [palette]
 user_fg = "#ffffff"
 user_bg = "#1a1a2e"
+
+git_fg = "#ffffff"
+git_bg = "#00c853"
 
 path_fg = "#c0c0c0"
 path_bg_1 = "#16213e"

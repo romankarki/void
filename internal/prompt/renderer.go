@@ -17,6 +17,7 @@ const (
 	segmentSeparator = "\ue0b0"
 
 	userIcon   = ">"
+	gitIcon    = "⎇"
 	driveIcon  = "▸"
 	folderIcon = "■"
 	timeIcon   = "◷"
@@ -55,6 +56,7 @@ var (
 func Render(segments []string, symbol string, palette map[string]string, ctx Context) string {
 	unicodeOK := supportsUnicodePrompt()
 	userPromptIcon := promptIcon(userIcon)
+	gitPromptIcon := promptIcon(gitIcon)
 	timePromptIcon := promptIcon(timeIcon)
 	errorPromptIcon := promptIcon(errorIcon)
 
@@ -64,6 +66,10 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 		case "user":
 			if userLabel := resolveUserSegmentLabel(ctx.WorkDir); userLabel != "" {
 				rendered = append(rendered, newSegment("user", labelWithOptionalIcon(userPromptIcon, userLabel), palette))
+			}
+		case "git":
+			if branchLabel := resolveGitSegmentLabel(ctx.WorkDir); branchLabel != "" {
+				rendered = append(rendered, newSegment("git", labelWithOptionalIcon(gitPromptIcon, branchLabel), palette))
 			}
 		case "path":
 			wd := ctx.WorkDir
@@ -173,21 +179,7 @@ func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 
 func resolveUserSegmentLabel(workDir string) string {
 	envLabel := resolveActiveEnvLabel()
-	branchLabel := resolveGitBranchLabel(workDir)
-	dirtyLabel := ""
-	if branchLabel != "" {
-		dirtyLabel = resolveGitDirtyLabel(workDir)
-	}
 
-	if branchLabel != "" {
-		if dirtyLabel != "" {
-			branchLabel = branchLabel + " " + dirtyLabel
-		}
-		if envLabel != "" {
-			return strings.ToUpper(envLabel) + " | " + branchLabel
-		}
-		return branchLabel
-	}
 	if envLabel != "" {
 		return strings.ToUpper(envLabel)
 	}
@@ -237,6 +229,34 @@ func resolveGitBranchLabel(workDir string) string {
 		return ""
 	}
 	return branch
+}
+
+func resolveGitSegmentLabel(workDir string) string {
+	dir := strings.TrimSpace(workDir)
+	if dir == "" {
+		if wd, err := os.Getwd(); err == nil {
+			dir = wd
+		}
+	}
+	if dir == "" {
+		return ""
+	}
+
+	branch, err := resolveGitBranchForDir(dir)
+	if err != nil {
+		return ""
+	}
+	branch = strings.TrimSpace(branch)
+	if branch == "" || strings.EqualFold(branch, "HEAD") {
+		return ""
+	}
+
+	dirty := ""
+	if dirtyResult, err := resolveGitDirtyForDir(dir); err == nil && dirtyResult {
+		dirty = " *"
+	}
+
+	return branch + dirty
 }
 
 func resolveSystemIdentityLabel() string {
@@ -378,6 +398,9 @@ func shuffledColors(colors []string) []string {
 func newSegment(name, text string, palette map[string]string) renderSegment {
 	fg := palette[name+"_fg"]
 	if name == "user" {
+		fg = "#ffffff"
+	}
+	if name == "git" && fg == "" {
 		fg = "#ffffff"
 	}
 
