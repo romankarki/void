@@ -21,11 +21,11 @@ const (
 	// errorIcon        = "\u26A0\uFE0F"
 	segmentSeparator = "\ue0b0"
 
-	userIcon              = ""
-	driveIcon             = ""
-	folderIcon            = ""
-	timeIcon              = ""
-	errorIcon             = ""
+	userIcon   = "(-<)"
+	driveIcon  = ""
+	folderIcon = ""
+	timeIcon   = "⌛"
+	errorIcon  = ""
 	// segmentSeparator      = ""
 	segmentSeparatorASCII = ""
 	promptLinePrefix      = "| "
@@ -48,6 +48,7 @@ type renderSegment struct {
 
 var (
 	resolveGitBranchForDir = detectGitBranchForDir
+	resolveGitDirtyForDir  = detectGitDirtyForDir
 	resolveCurrentUser     = user.Current
 	resolveHostname        = os.Hostname
 )
@@ -174,8 +175,15 @@ func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 func resolveUserSegmentLabel(workDir string) string {
 	envLabel := resolveActiveEnvLabel()
 	branchLabel := resolveGitBranchLabel(workDir)
+	dirtyLabel := ""
+	if branchLabel != "" {
+		dirtyLabel = resolveGitDirtyLabel(workDir)
+	}
 
 	if branchLabel != "" {
+		if dirtyLabel != "" {
+			branchLabel = branchLabel + " " + dirtyLabel
+		}
 		if envLabel != "" {
 			return strings.ToUpper(envLabel) + " | " + branchLabel
 		}
@@ -274,6 +282,34 @@ func detectGitBranchForDir(dir string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+func resolveGitDirtyLabel(workDir string) string {
+	dir := strings.TrimSpace(workDir)
+	if dir == "" {
+		if wd, err := os.Getwd(); err == nil {
+			dir = wd
+		}
+	}
+	if dir == "" {
+		return ""
+	}
+
+	dirty, err := resolveGitDirtyForDir(dir)
+	if err != nil || !dirty {
+		return ""
+	}
+
+	return "[.]"
+}
+
+func detectGitDirtyForDir(dir string) (bool, error) {
+	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(string(output)) != "", nil
+}
+
 func parseVirtualEnvPromptLabel(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
@@ -341,9 +377,14 @@ func shuffledColors(colors []string) []string {
 }
 
 func newSegment(name, text string, palette map[string]string) renderSegment {
+	fg := palette[name+"_fg"]
+	if name == "user" {
+		fg = "#ffffff"
+	}
+
 	return renderSegment{
 		text: text,
-		fg:   palette[name+"_fg"],
+		fg:   fg,
 		bg:   palette[name+"_bg"],
 	}
 }

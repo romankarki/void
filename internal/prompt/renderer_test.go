@@ -202,15 +202,18 @@ func TestResolveUserSegmentLabelUsesGitBranchWhenAvailable(t *testing.T) {
 	t.Setenv("VIRTUAL_ENV", "")
 
 	origGit := resolveGitBranchForDir
+	origDirty := resolveGitDirtyForDir
 	origUser := resolveCurrentUser
 	origHost := resolveHostname
 	t.Cleanup(func() {
 		resolveGitBranchForDir = origGit
+		resolveGitDirtyForDir = origDirty
 		resolveCurrentUser = origUser
 		resolveHostname = origHost
 	})
 
 	resolveGitBranchForDir = func(string) (string, error) { return "main", nil }
+	resolveGitDirtyForDir = func(string) (bool, error) { return false, nil }
 	resolveCurrentUser = func() (*user.User, error) { return &user.User{Username: "asus"}, nil }
 	resolveHostname = func() (string, error) { return "laptop", nil }
 
@@ -227,14 +230,54 @@ func TestResolveUserSegmentLabelCombinesVenvAndGitBranch(t *testing.T) {
 	t.Setenv("VIRTUAL_ENV", "")
 
 	origGit := resolveGitBranchForDir
+	origDirty := resolveGitDirtyForDir
 	t.Cleanup(func() {
 		resolveGitBranchForDir = origGit
+		resolveGitDirtyForDir = origDirty
 	})
 	resolveGitBranchForDir = func(string) (string, error) { return "main", nil }
+	resolveGitDirtyForDir = func(string) (bool, error) { return false, nil }
 
 	got := resolveUserSegmentLabel("/tmp/repo")
 	if got != "API-ENV | main" {
 		t.Fatalf("expected venv + git branch label, got %q", got)
+	}
+}
+
+func TestResolveUserSegmentLabelShowsDirtyIndicator(t *testing.T) {
+	t.Setenv("VOID_ACTIVE_LABEL", "")
+	t.Setenv("VIRTUAL_ENV_PROMPT", "")
+	t.Setenv("CONDA_DEFAULT_ENV", "")
+	t.Setenv("VIRTUAL_ENV", "")
+
+	origGit := resolveGitBranchForDir
+	origDirty := resolveGitDirtyForDir
+	t.Cleanup(func() {
+		resolveGitBranchForDir = origGit
+		resolveGitDirtyForDir = origDirty
+	})
+	resolveGitBranchForDir = func(string) (string, error) { return "main", nil }
+	resolveGitDirtyForDir = func(string) (bool, error) { return true, nil }
+
+	got := resolveUserSegmentLabel("/tmp/repo")
+	if got != "main [.]" {
+		t.Fatalf("expected dirty git indicator, got %q", got)
+	}
+}
+
+func TestRenderUserSegmentForcesWhiteText(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "")
+	t.Setenv("VOID_PROMPT_UNICODE", "1")
+	t.Setenv("VOID_ACTIVE_LABEL", "dev")
+
+	out := Render(
+		[]string{"user"},
+		">",
+		map[string]string{"user_fg": "#ff0000", "user_bg": "#111111"},
+		Context{},
+	)
+	if !strings.Contains(out, "\x1b[38;2;255;255;255m") {
+		t.Fatalf("expected user segment text to render in white, got %q", out)
 	}
 }
 
