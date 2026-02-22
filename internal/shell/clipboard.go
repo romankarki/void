@@ -7,7 +7,11 @@ import (
 	"strings"
 )
 
-var copyTextToClipboard = copyToClipboard
+var copyTextToClipboard = CopyTextToClipboard
+
+func CopyTextToClipboard(text string) error {
+	return copyToClipboard(text)
+}
 
 func copyToClipboard(text string) error {
 	if strings.TrimSpace(text) == "" {

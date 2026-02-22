@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/void-shell/void/internal/config"
 	"github.com/void-shell/void/internal/console"
@@ -13,6 +14,8 @@ import (
 	"github.com/void-shell/void/internal/shell"
 	"github.com/void-shell/void/internal/theme"
 )
+
+var copyTextToClipboard = shell.CopyTextToClipboard
 
 func main() {
 	console.EnableUTF8()
@@ -27,6 +30,10 @@ func main() {
 			os.Exit(runInstall(os.Args[2:]))
 		case "update":
 			os.Exit(runUpdate(os.Args[2:]))
+		case "cp":
+			os.Exit(runCopy(os.Args[2:]))
+		case "copy-error":
+			os.Exit(runCopy([]string{"error"}))
 		}
 	}
 
@@ -132,4 +139,36 @@ func runUpdate(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+func runCopy(args []string) int {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: void cp <err|error>")
+		return 1
+	}
+
+	target := strings.ToLower(strings.TrimSpace(args[0]))
+	switch target {
+	case "err", "error":
+		message := strings.TrimSpace(os.Getenv("VOID_LAST_ERROR"))
+		if message == "" {
+			if code := strings.TrimSpace(os.Getenv("VOID_LAST_EXIT_CODE")); code != "" && code != "0" {
+				message = fmt.Sprintf("last command exited with code %s", code)
+			}
+		}
+		if message == "" {
+			fmt.Fprintln(os.Stderr, "void: no captured error found in this shell session")
+			fmt.Fprintln(os.Stderr, "hint: in PowerShell, reload your profile after updating: . $PROFILE")
+			return 1
+		}
+		if err := copyTextToClipboard(message); err != nil {
+			fmt.Fprintf(os.Stderr, "void: cp error failed: %v\n", err)
+			return 1
+		}
+		fmt.Println("copied last error to clipboard")
+		return 0
+	default:
+		fmt.Fprintln(os.Stderr, "usage: void cp <err|error>")
+		return 1
+	}
 }

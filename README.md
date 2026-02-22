@@ -16,6 +16,7 @@ Void is a configurable shell wrapper inspired by the requirements in `REQUIREMEN
   - `void reload`
   - `void copy-error`
   - `void cp err`
+  - `void cp error`
 
 ## Project Layout
 
@@ -118,6 +119,12 @@ Then append the output to your shell profile:
 - **CMD**: use the fallback `PROMPT` line (CMD has no native pre-prompt hook to run external programs).
 
 This makes the same Void prompt style available in Windows Terminal, VS Code integrated terminals, and other shell hosts that use those profiles.
+
+With the PowerShell profile snippet loaded, you can copy the last command error from the current shell session:
+
+```powershell
+void cp error
+```
 
 ## Install and Update (single binary flow)
 

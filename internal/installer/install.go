@@ -114,8 +114,25 @@ func appendBlockIfMissing(path, block, marker string) error {
 		}
 		existing = nil
 	}
-	if strings.Contains(string(existing), marker) {
-		return nil
+	content := string(existing)
+	if start := strings.Index(content, marker); start >= 0 {
+		endRel := strings.Index(content[start:], profileMarkerEnd)
+		if endRel >= 0 {
+			end := start + endRel + len(profileMarkerEnd)
+			for end < len(content) && (content[end] == '\r' || content[end] == '\n') {
+				end++
+			}
+			content = content[:start] + block + content[end:]
+
+			mode := os.FileMode(0o644)
+			if info, err := os.Stat(path); err == nil {
+				mode = info.Mode().Perm()
+			}
+			if err := os.WriteFile(path, []byte(content), mode); err != nil {
+				return fmt.Errorf("write profile: %w", err)
+			}
+			return nil
+		}
 	}
 
 	mode := os.FileMode(0o644)
@@ -123,7 +140,7 @@ func appendBlockIfMissing(path, block, marker string) error {
 		mode = info.Mode().Perm()
 	}
 
-	combined := append(existing, []byte(block)...)
+	combined := append([]byte(content), []byte(block)...)
 	if len(existing) > 0 && existing[len(existing)-1] != '\n' {
 		combined = append(existing, '\n')
 		combined = append(combined, []byte(block)...)

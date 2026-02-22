@@ -48,6 +48,30 @@ func TestAppendBlockIfMissingIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestAppendBlockIfMissingReplacesExistingMarkedBlock(t *testing.T) {
+	tmp := t.TempDir()
+	profile := filepath.Join(tmp, "profile.txt")
+
+	original := profileMarkerStart + "\nold content\n" + profileMarkerEnd + "\n"
+	if err := os.WriteFile(profile, []byte(original), 0o644); err != nil {
+		t.Fatalf("write profile: %v", err)
+	}
+
+	replacement := profileMarkerStart + "\nnew content\n" + profileMarkerEnd + "\n"
+	if err := appendBlockIfMissing(profile, replacement, profileMarkerStart); err != nil {
+		t.Fatalf("replace block failed: %v", err)
+	}
+
+	contents, err := os.ReadFile(profile)
+	if err != nil {
+		t.Fatalf("read profile: %v", err)
+	}
+	got := string(contents)
+	if !strings.Contains(got, "new content") || strings.Contains(got, "old content") {
+		t.Fatalf("expected block replacement, got %q", got)
+	}
+}
+
 func TestPathContainsEntry(t *testing.T) {
 	pathValue := strings.Join([]string{`C:\Tools`, `C:\Users\ASUS\AppData\Local\Void\bin`}, string(os.PathListSeparator))
 	if !pathContainsEntry(pathValue, `C:\Users\ASUS\AppData\Local\Void\bin`) {

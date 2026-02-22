@@ -125,10 +125,10 @@ func (a *App) runMeta(line string) int {
 	case "copy-error":
 		return a.copyLastError("copy-error")
 	case "cp":
-		if len(fields) >= 3 && strings.EqualFold(fields[2], "err") {
+		if len(fields) >= 3 && (strings.EqualFold(fields[2], "err") || strings.EqualFold(fields[2], "error")) {
 			return a.copyLastError("cp err")
 		}
-		a.reportError("usage: void cp err")
+		a.reportError("usage: void cp <err|error>")
 		return 1
 	default:
 		a.reportError("unknown void command")
