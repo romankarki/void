@@ -42,6 +42,8 @@ func TestPowershellInitScriptSetsUTF8Encoding(t *testing.T) {
 		"[System.Text.Encoding]::UTF8.GetString($stdout.ToArray())",
 		"$lastCommandSucceeded = $?",
 		"if (-not $lastCommandSucceeded -and $code -eq 0) { $code = 1 }",
+		"$env:VOID_LAST_EXIT_CODE = \"$code\"",
+		"$env:VOID_LAST_ERROR = $lastMessage",
 		"__void_render_prompt -code $code -workdir $PWD.Path",
 	}
 

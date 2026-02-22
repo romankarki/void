@@ -29,6 +29,46 @@ func TestRunMetaCopyErrorSuccess(t *testing.T) {
 	}
 }
 
+func TestRunMetaCpErrAliasSuccess(t *testing.T) {
+	app := &App{lastError: "reload failed: boom"}
+
+	original := copyTextToClipboard
+	defer func() { copyTextToClipboard = original }()
+
+	var copied string
+	copyTextToClipboard = func(text string) error {
+		copied = text
+		return nil
+	}
+
+	if code := app.runMeta("void cp err"); code != 0 {
+		t.Fatalf("expected cp err alias to succeed, got %d", code)
+	}
+	if copied != app.lastError {
+		t.Fatalf("expected copied text %q, got %q", app.lastError, copied)
+	}
+}
+
+func TestRunMetaCpErrorAliasSuccess(t *testing.T) {
+	app := &App{lastError: "command failed"}
+
+	original := copyTextToClipboard
+	defer func() { copyTextToClipboard = original }()
+
+	var copied string
+	copyTextToClipboard = func(text string) error {
+		copied = text
+		return nil
+	}
+
+	if code := app.runMeta("void cp error"); code != 0 {
+		t.Fatalf("expected cp error alias to succeed, got %d", code)
+	}
+	if copied != app.lastError {
+		t.Fatalf("expected copied text %q, got %q", app.lastError, copied)
+	}
+}
+
 func TestRunMetaCopyErrorFailure(t *testing.T) {
 	app := &App{lastError: "reload failed: boom"}
 

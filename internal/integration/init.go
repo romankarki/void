@@ -57,6 +57,19 @@ function prompt {
     $code = $global:LASTEXITCODE
     if ($null -eq $code) { $code = 0 }
     if (-not $lastCommandSucceeded -and $code -eq 0) { $code = 1 }
+    $env:VOID_LAST_EXIT_CODE = "$code"
+    if (-not $lastCommandSucceeded -or $code -ne 0) {
+        $lastMessage = ""
+        if ($Error.Count -gt 0 -and $null -ne $Error[0]) {
+            $lastMessage = ($Error[0] | Out-String).Trim()
+        }
+        if ([string]::IsNullOrWhiteSpace($lastMessage)) {
+            $lastMessage = ("command exited with code {0}" -f $code)
+        }
+        $env:VOID_LAST_ERROR = $lastMessage
+    } else {
+        $env:VOID_LAST_ERROR = ""
+    }
     $global:__void_last_exit = $code
     __void_render_prompt -code $code -workdir $PWD.Path
 }`

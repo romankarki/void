@@ -14,22 +14,22 @@ import (
 )
 
 const (
-	// userIcon         = "💻" //"\U0001F464"
-	// driveIcon        = "\U0001F4BE"
-	// folderIcon       = "\U0001F4C2"
-	// timeIcon         = "🕜" //"\u23F0"
-	// errorIcon        = "\u26A0\uFE0F"
 	segmentSeparator = "\ue0b0"
 
-	userIcon   = "(-<)"
-	driveIcon  = ""
-	folderIcon = ""
-	timeIcon   = "⌛"
-	errorIcon  = ""
-	// segmentSeparator      = ""
-	segmentSeparatorASCII = ""
-	promptLinePrefix      = "| "
-	iconLabelGap          = "  "
+	userIcon   = ">"
+	gitIcon    = "⎇"
+	driveIcon  = "▸"
+	folderIcon = "■"
+	timeIcon   = "◷"
+	errorIcon  = "✕"
+
+	segmentSeparatorASCII = ">"
+	promptLinePrefix      = "│ "
+	iconLabelGap          = " "
+
+	leftBracket  = ""
+	rightBracket = ""
+	blockChar    = "█"
 
 	maxPathBreadcrumbs   = 20
 	defaultGradientSteps = 20
@@ -56,6 +56,7 @@ var (
 func Render(segments []string, symbol string, palette map[string]string, ctx Context) string {
 	unicodeOK := supportsUnicodePrompt()
 	userPromptIcon := promptIcon(userIcon)
+	gitPromptIcon := promptIcon(gitIcon)
 	timePromptIcon := promptIcon(timeIcon)
 	errorPromptIcon := promptIcon(errorIcon)
 
@@ -65,6 +66,10 @@ func Render(segments []string, symbol string, palette map[string]string, ctx Con
 		case "user":
 			if userLabel := resolveUserSegmentLabel(ctx.WorkDir); userLabel != "" {
 				rendered = append(rendered, newSegment("user", labelWithOptionalIcon(userPromptIcon, userLabel), palette))
+			}
+		case "git":
+			if branchLabel := resolveGitSegmentLabel(ctx.WorkDir); branchLabel != "" {
+				rendered = append(rendered, newSegment("git", labelWithOptionalIcon(gitPromptIcon, branchLabel), palette))
 			}
 		case "path":
 			wd := ctx.WorkDir
@@ -174,25 +179,19 @@ func renderPathSegments(wd string, palette map[string]string) []renderSegment {
 
 func resolveUserSegmentLabel(workDir string) string {
 	envLabel := resolveActiveEnvLabel()
-	branchLabel := resolveGitBranchLabel(workDir)
-	dirtyLabel := ""
-	if branchLabel != "" {
-		dirtyLabel = resolveGitDirtyLabel(workDir)
-	}
 
-	if branchLabel != "" {
-		if dirtyLabel != "" {
-			branchLabel = branchLabel + " " + dirtyLabel
-		}
-		if envLabel != "" {
-			return strings.ToUpper(envLabel) + " | " + branchLabel
-		}
-		return branchLabel
-	}
 	if envLabel != "" {
-		return strings.ToUpper(envLabel)
+		return truncateLabel(strings.ToUpper(envLabel), 6)
 	}
-	return resolveSystemIdentityLabel()
+	return truncateLabel(resolveSystemIdentityLabel(), 6)
+}
+
+func truncateLabel(label string, maxLen int) string {
+	label = strings.TrimSpace(label)
+	if len(label) <= maxLen {
+		return label
+	}
+	return label[:maxLen] + "..."
 }
 
 func resolveActiveEnvLabel() string {
@@ -238,6 +237,34 @@ func resolveGitBranchLabel(workDir string) string {
 		return ""
 	}
 	return branch
+}
+
+func resolveGitSegmentLabel(workDir string) string {
+	dir := strings.TrimSpace(workDir)
+	if dir == "" {
+		if wd, err := os.Getwd(); err == nil {
+			dir = wd
+		}
+	}
+	if dir == "" {
+		return ""
+	}
+
+	branch, err := resolveGitBranchForDir(dir)
+	if err != nil {
+		return ""
+	}
+	branch = strings.TrimSpace(branch)
+	if branch == "" || strings.EqualFold(branch, "HEAD") {
+		return ""
+	}
+
+	dirty := ""
+	if dirtyResult, err := resolveGitDirtyForDir(dir); err == nil && dirtyResult {
+		dirty = " *"
+	}
+
+	return branch + dirty
 }
 
 func resolveSystemIdentityLabel() string {
@@ -339,10 +366,10 @@ func pathGradient(palette map[string]string) []string {
 	}
 
 	defaultColors := []string{
-		"#3b82f6", "#22c55e", "#a855f7", "#f59e0b", "#06b6d4",
-		"#ef4444", "#84cc16", "#ec4899", "#6366f1", "#14b8a6",
-		"#f97316", "#8b5cf6", "#10b981", "#eab308", "#0ea5e9",
-		"#d946ef", "#65a30d", "#fb7185", "#2563eb", "#16a34a",
+		"#6200ea", "#00b0ff", "#00bfa5", "#ff0097", "#aa00ff",
+		"#00c853", "#ff6d00", "#304ffe", "#00e5ff", "#d500f9",
+		"#64dd17", "#ffab00", "#2962ff", "#1de9b6", "#e91e63",
+		"#76ff03", "#ff3d00", "#3d5afe", "#00b8d4",
 	}
 
 	base := strings.TrimSpace(palette["path_bg"])
@@ -381,6 +408,9 @@ func newSegment(name, text string, palette map[string]string) renderSegment {
 	if name == "user" {
 		fg = "#ffffff"
 	}
+	if name == "git" && fg == "" {
+		fg = "#ffffff"
+	}
 
 	return renderSegment{
 		text: text,
@@ -407,11 +437,14 @@ func renderWithArrows(segments []renderSegment, unicodeOK bool) string {
 		}
 
 		if start := ansiSeq(segment.fg, segment.bg); start != "" {
+			out.WriteString("\x1b[1m")
 			out.WriteString(start)
 			out.WriteString(text)
 			out.WriteString("\x1b[0m")
 		} else {
+			out.WriteString("\x1b[1m")
 			out.WriteString(text)
+			out.WriteString("\x1b[0m")
 		}
 
 		if segment.bg != "" {
@@ -421,7 +454,18 @@ func renderWithArrows(segments []renderSegment, unicodeOK bool) string {
 				out.WriteString(separator)
 				out.WriteString("\x1b[0m")
 			} else {
-				out.WriteString(separator)
+				if nextBG == "" {
+					arrowStyle := ansiRGB("38", segment.bg)
+					if arrowStyle != "" {
+						out.WriteString(arrowStyle)
+						out.WriteString(separator)
+						out.WriteString("\x1b[0m")
+					} else {
+						out.WriteString(separator)
+					}
+				} else {
+					out.WriteString(separator)
+				}
 			}
 		} else if i+1 < len(segments) {
 			out.WriteByte(' ')

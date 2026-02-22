@@ -1,6 +1,6 @@
 # Binaries
-void
-void.exe
+/void
+/void.exe
 *.exe
 *.exe~
 *.dll
