@@ -65,6 +65,7 @@ func (a *App) Run() error {
 				a.lastCode = 1
 			} else {
 				a.lastCode = 0
+				a.clearError()
 			}
 			continue
 		}
@@ -170,6 +171,7 @@ func (a *App) runCommand(line string) int {
 		a.reportError(fmt.Sprintf("void: run command: %v", err))
 		return 1
 	}
+	a.clearError()
 	return 0
 }
 
@@ -212,6 +214,8 @@ func (a *App) runCommandWithEnvSync(line string) (bool, int) {
 	if exitCode != 0 {
 		a.recordError(fmt.Sprintf("command %q exited with code %d", line, exitCode))
 		a.printCopyErrorHint()
+	} else {
+		a.clearError()
 	}
 	return true, exitCode
 }
@@ -377,6 +381,10 @@ func normalizeEnvKey(key string) string {
 
 func (a *App) recordError(message string) {
 	a.lastError = strings.TrimSpace(message)
+}
+
+func (a *App) clearError() {
+	a.lastError = ""
 }
 
 func (a *App) printCopyErrorHint() {

@@ -181,9 +181,17 @@ func resolveUserSegmentLabel(workDir string) string {
 	envLabel := resolveActiveEnvLabel()
 
 	if envLabel != "" {
-		return strings.ToUpper(envLabel)
+		return truncateLabel(strings.ToUpper(envLabel), 6)
 	}
-	return resolveSystemIdentityLabel()
+	return truncateLabel(resolveSystemIdentityLabel(), 6)
+}
+
+func truncateLabel(label string, maxLen int) string {
+	label = strings.TrimSpace(label)
+	if len(label) <= maxLen {
+		return label
+	}
+	return label[:maxLen] + "..."
 }
 
 func resolveActiveEnvLabel() string {
