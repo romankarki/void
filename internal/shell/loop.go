@@ -89,7 +89,7 @@ func (a *App) expandAlias(line string) string {
 func (a *App) runMeta(line string) int {
 	fields := strings.Fields(line)
 	if len(fields) < 2 {
-		a.reportError("void commands: complete, history, reload, copy-error")
+		a.reportError("void commands: complete, history, reload, copy-error, cp err")
 		return 1
 	}
 	switch fields[1] {
@@ -123,20 +123,30 @@ func (a *App) runMeta(line string) int {
 		fmt.Println("configuration reloaded")
 		return 0
 	case "copy-error":
-		if strings.TrimSpace(a.lastError) == "" {
-			a.reportError("no error message captured yet")
-			return 1
+		return a.copyLastError("copy-error")
+	case "cp":
+		if len(fields) >= 3 && strings.EqualFold(fields[2], "err") {
+			return a.copyLastError("cp err")
 		}
-		if err := copyTextToClipboard(a.lastError); err != nil {
-			a.reportError(fmt.Sprintf("copy-error failed: %v", err))
-			return 1
-		}
-		fmt.Println("copied last error to clipboard")
-		return 0
+		a.reportError("usage: void cp err")
+		return 1
 	default:
 		a.reportError("unknown void command")
 		return 1
 	}
+}
+
+func (a *App) copyLastError(commandName string) int {
+	if strings.TrimSpace(a.lastError) == "" {
+		a.reportError("no error message captured yet")
+		return 1
+	}
+	if err := copyTextToClipboard(a.lastError); err != nil {
+		a.reportError(fmt.Sprintf("%s failed: %v", commandName, err))
+		return 1
+	}
+	fmt.Println("copied last error to clipboard")
+	return 0
 }
 
 func (a *App) runCommand(line string) int {
@@ -373,7 +383,7 @@ func (a *App) printCopyErrorHint() {
 	if strings.TrimSpace(a.lastError) == "" {
 		return
 	}
-	fmt.Fprintln(os.Stderr, "hint: run `void copy-error` to copy the last error")
+	fmt.Fprintln(os.Stderr, "hint: run `void cp err` (or `void copy-error`) to copy the last error")
 }
 
 func (a *App) reportError(message string) {

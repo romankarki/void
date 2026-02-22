@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/void-shell/void/internal/console"
 	"github.com/void-shell/void/internal/config"
+	"github.com/void-shell/void/internal/console"
+	"github.com/void-shell/void/internal/installer"
 	"github.com/void-shell/void/internal/integration"
 	"github.com/void-shell/void/internal/prompt"
 	"github.com/void-shell/void/internal/shell"
@@ -22,6 +23,10 @@ func main() {
 			os.Exit(runPrompt(os.Args[2:]))
 		case "init":
 			os.Exit(runInit(os.Args[2:]))
+		case "install":
+			os.Exit(runInstall(os.Args[2:]))
+		case "update":
+			os.Exit(runUpdate(os.Args[2:]))
 		}
 	}
 
@@ -86,5 +91,45 @@ func runInit(args []string) int {
 		return 1
 	}
 	fmt.Println(snippet)
+	return 0
+}
+
+func runInstall(args []string) int {
+	fs := flag.NewFlagSet("install", flag.ContinueOnError)
+	yes := fs.Bool("yes", false, "Apply recommended install actions without prompts")
+	shellName := fs.String("shell", "", "Shell profile to configure (powershell|bash|zsh|cmd)")
+	noProfile := fs.Bool("no-profile", false, "Skip shell profile changes")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+
+	opts := installer.InstallOptions{
+		Yes:       *yes,
+		Shell:     *shellName,
+		NoProfile: *noProfile,
+	}
+	if err := installer.Install(opts, os.Stdout, os.Stdin); err != nil {
+		fmt.Fprintf(os.Stderr, "void: install failed: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+func runUpdate(args []string) int {
+	fs := flag.NewFlagSet("update", flag.ContinueOnError)
+	repo := fs.String("repo", "", "GitHub repo for releases (owner/name), default void-shell/void")
+	fs.SetOutput(os.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+
+	opts := installer.UpdateOptions{
+		Repo: *repo,
+	}
+	if err := installer.Update(opts, os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "void: update failed: %v\n", err)
+		return 1
+	}
 	return 0
 }

@@ -9,10 +9,13 @@ Void is a configurable shell wrapper inspired by the requirements in `REQUIREMEN
 - Presets: `minimal`, `cyberpunk`.
 - Alias expansion before command execution.
 - Persistent history with dedup + max size cap.
+- Install and update workflow from the binary itself (`void install`, `void update`).
 - Meta commands:
   - `void history`
   - `void complete <prefix>`
   - `void reload`
+  - `void copy-error`
+  - `void cp err`
 
 ## Project Layout
 
@@ -116,6 +119,44 @@ Then append the output to your shell profile:
 
 This makes the same Void prompt style available in Windows Terminal, VS Code integrated terminals, and other shell hosts that use those profiles.
 
+## Install and Update (single binary flow)
+
+You can distribute a single `void.exe` binary and let users self-install:
+
+```bash
+void install
+```
+
+What `void install` does:
+- Installs `void.exe` to `%LOCALAPPDATA%\Void\bin\void.exe` (user-level).
+- Creates `~/.void/config.toml` if missing.
+- Prompts to add Void to user `PATH`.
+- Prompts to append prompt integration to a shell profile (`powershell` by default on Windows).
+
+Useful flags:
+
+```bash
+void install --yes
+void install --shell powershell
+void install --no-profile
+```
+
+For updates:
+
+```bash
+void update
+```
+
+This downloads the latest release asset from GitHub and replaces the installed binary.
+
+Advanced:
+
+```bash
+void update --repo owner/repo
+```
+
+See `PACKAGING.md` for release artifact naming and distribution strategy.
+
 ### Show activation label in place of username (Windows)
 
 You can surface an active profile/environment name in the `user` segment by setting `VOID_ACTIVE_LABEL`.
@@ -145,6 +186,12 @@ Run checks:
 ```bash
 go test ./...
 go vet ./...
+```
+
+Build release artifacts:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1 -OutDir dist
 ```
 
 ## Notes
