@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/void-shell/void/internal/beautify"
 	"github.com/void-shell/void/internal/config"
 	"github.com/void-shell/void/internal/console"
 	"github.com/void-shell/void/internal/installer"
@@ -34,6 +35,8 @@ func main() {
 			os.Exit(runCopy(os.Args[2:]))
 		case "copy-error":
 			os.Exit(runCopy([]string{"error"}))
+		case "beautify":
+			os.Exit(runBeautify(os.Args[2:]))
 		}
 	}
 
@@ -171,4 +174,12 @@ func runCopy(args []string) int {
 		fmt.Fprintln(os.Stderr, "usage: void cp <err|error>")
 		return 1
 	}
+}
+
+func runBeautify(args []string) int {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: void beautify <command> [args...]")
+		return 1
+	}
+	return beautify.Run(args[0], args[1:])
 }
