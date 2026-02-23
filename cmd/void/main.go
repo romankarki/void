@@ -35,8 +35,8 @@ func main() {
 			os.Exit(runCopy(os.Args[2:]))
 		case "copy-error":
 			os.Exit(runCopy([]string{"error"}))
-		case "beautify", "b":
-			os.Exit(runBeautify(os.Args[2:]))
+		case "bench", "b":
+			os.Exit(runBench(os.Args[2:]))
 		}
 	}
 
@@ -176,9 +176,9 @@ func runCopy(args []string) int {
 	}
 }
 
-func runBeautify(args []string) int {
+func runBench(args []string) int {
 	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "usage: void beautify <command> [args...]")
+		fmt.Fprintln(os.Stderr, "usage: void bench <command> [args...]")
 		return 1
 	}
 	return beautify.Run(args[0], args[1:])
