@@ -12,13 +12,20 @@ var kernel32 = syscall.NewLazyDLL("kernel32.dll")
 var procGetStdHandle = kernel32.NewProc("GetStdHandle")
 var procSetConsoleMode = kernel32.NewProc("SetConsoleMode")
 var procGetConsoleMode = kernel32.NewProc("GetConsoleMode")
-var procReadConsoleInputW = kernel32.NewProc("ReadConsoleInputW")
+var procPeekConsoleInput = kernel32.NewProc("PeekConsoleInputW")
+var procReadConsoleInput = kernel32.NewProc("ReadConsoleInputW")
+var procFlushConsoleInputBuffer = kernel32.NewProc("FlushConsoleInputBuffer")
 
 const (
-	STD_INPUT_HANDLE  = 0xFFFFFFF6
-	ENABLE_ECHO_INPUT = 0x0004
-	ENABLE_LINE_INPUT = 0x0002
-	KEY_EVENT         = 0x0001
+	STD_INPUT_HANDLE       = 0xFFFFFFF6
+	ENABLE_ECHO_INPUT      = 0x0004
+	ENABLE_LINE_INPUT      = 0x0002
+	ENABLE_PROCESSED_INPUT = 0x0001
+	KEY_EVENT              = 0x0001
+	ENABLE_WINDOW_INPUT    = 0x0008
+	ENABLE_MOUSE_INPUT     = 0x0010
+	ENABLE_EXTENDED_FLAGS  = 0x0080
+	ENABLE_QUICK_EDIT_MODE = 0x0040
 )
 
 var stdinHandle syscall.Handle
@@ -32,8 +39,13 @@ func initConsole() error {
 	procGetConsoleMode.Call(uintptr(stdinHandle), uintptr(unsafe.Pointer(&mode)))
 	oldMode = mode
 
-	newMode := mode &^ (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT)
+	newMode := uint32(ENABLE_EXTENDED_FLAGS)
+	newMode &^= ENABLE_QUICK_EDIT_MODE
+	newMode &^= ENABLE_ECHO_INPUT
+	newMode &^= ENABLE_LINE_INPUT
+
 	procSetConsoleMode.Call(uintptr(stdinHandle), uintptr(newMode))
+	procFlushConsoleInputBuffer.Call(uintptr(stdinHandle))
 
 	return nil
 }
@@ -49,33 +61,40 @@ const (
 	KEY_ESC   = 0x1B
 )
 
-func readKey() (string, bool) {
-	var eventType uint16
-	var _ [2]byte
-	var keyDown uint32
-	var _ [2]uint16
-	var vk uint16
-	var _ [2]uint16
-	var char uint16
-	var _ [4]byte
+type INPUT_RECORD struct {
+	EventType uint16
+	_         uint16
+	Event     [16]byte
+}
 
+func readKey() (string, bool) {
+	var buf [20]byte
 	var numRead uint32
 
 	for {
-		procReadConsoleInputW.Call(
+		ret, _, _ := procReadConsoleInput.Call(
 			uintptr(stdinHandle),
-			uintptr(unsafe.Pointer(&eventType)),
+			uintptr(unsafe.Pointer(&buf[0])),
 			uintptr(1),
 			uintptr(unsafe.Pointer(&numRead)),
 		)
 
+		if ret == 0 || numRead == 0 {
+			continue
+		}
+
+		eventType := uint16(buf[0]) | (uint16(buf[1]) << 8)
 		if eventType != KEY_EVENT {
 			continue
 		}
 
+		keyDown := uint32(buf[4]) | (uint32(buf[5]) << 8) | (uint32(buf[6]) << 16) | (uint32(buf[7]) << 24)
 		if keyDown == 0 {
 			continue
 		}
+
+		vk := uint16(buf[10]) | (uint16(buf[11]) << 8)
+		ch := uint16(buf[14]) | (uint16(buf[15]) << 8)
 
 		switch vk {
 		case KEY_UP:
@@ -88,8 +107,8 @@ func readKey() (string, bool) {
 			return "esc", true
 		}
 
-		if char >= 32 && char < 127 {
-			return string(rune(char)), true
+		if ch >= 32 && ch < 127 {
+			return string(rune(ch)), true
 		}
 	}
 }
