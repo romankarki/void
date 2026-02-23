@@ -160,7 +160,7 @@ func RunTUI(articles []Article) int {
 				}
 				view = "detail"
 				escCount = 0
-			case "left", "n":
+			case "right", "n":
 				clearScreen()
 				fmt.Print("\x1b[?25h")
 				fmt.Printf("\n Fetching page %d...\n", page+1)
@@ -175,7 +175,7 @@ func RunTUI(articles []Article) int {
 					selected = 0
 				}
 				escCount = 0
-			case "right", "p":
+			case "left", "p":
 				if page > 1 {
 					clearScreen()
 					fmt.Print("\x1b[?25h")
@@ -226,7 +226,7 @@ func renderList(articles []Article, selected int, page int) {
 
 	fmt.Printf("\n \x1b[1;36m RONB News - Page %d\x1b[0m\n", page)
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n")
-	fmt.Print(" \x1b[90m↑/↓ Navigate  ·  Enter View  ·  ←/N Next  ·  →/P Prev  ·  Esc×2 Exit\x1b[0m\n")
+	fmt.Print(" \x1b[90m↑/↓ Navigate  ·  Enter View  ·  →/N Next  ·  ←/P Prev  ·  Esc×2 Exit\x1b[0m\n")
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n\n")
 
 	maxShow := 15
