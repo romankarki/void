@@ -12,6 +12,7 @@ import (
 type Article struct {
 	Title string
 	URL   string
+	Image string
 }
 
 var httpClient = &http.Client{Timeout: 15 * time.Second}
@@ -62,32 +63,35 @@ func FetchArticleContent(url string) (string, error) {
 func parseArticles(html string) []Article {
 	var articles []Article
 
-	titleRegex := regexp.MustCompile(`<h3><a href="([^"]+)"[^>]*>([^<]+)</a></h3>`)
-	matches := titleRegex.FindAllStringSubmatch(html, -1)
+	articleRegex := regexp.MustCompile(`<article[^>]*class="[^"]*post[^"]*"[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?<h3[^>]*><a[^>]*>([^<]+)</a></h3>`)
+	matches := articleRegex.FindAllStringSubmatch(html, -1)
 
 	seen := make(map[string]bool)
 	for _, m := range matches {
-		if len(m) >= 3 {
+		if len(m) >= 4 {
 			url := m[1]
-			title := strings.TrimSpace(m[2])
+			image := m[2]
+			title := strings.TrimSpace(m[3])
 			title = cleanHTML(title)
 			if title != "" && !seen[title] {
 				seen[title] = true
-				articles = append(articles, Article{Title: title, URL: url})
+				articles = append(articles, Article{Title: title, URL: url, Image: image})
 			}
 		}
 	}
 
-	mainTitleRegex := regexp.MustCompile(`<h1[^>]*>\s*<a href="([^"]+)"[^>]*>([^<]+)</a></h1>`)
-	mainMatches := mainTitleRegex.FindAllStringSubmatch(html, -1)
-	for _, m := range mainMatches {
-		if len(m) >= 3 {
-			url := m[1]
-			title := strings.TrimSpace(m[2])
-			title = cleanHTML(title)
-			if title != "" && !seen[title] {
-				seen[title] = true
-				articles = append([]Article{{Title: title, URL: url}}, articles...)
+	if len(articles) == 0 {
+		titleRegex := regexp.MustCompile(`<h3><a href="([^"]+)"[^>]*>([^<]+)</a></h3>`)
+		titleMatches := titleRegex.FindAllStringSubmatch(html, -1)
+		for _, m := range titleMatches {
+			if len(m) >= 3 {
+				url := m[1]
+				title := strings.TrimSpace(m[2])
+				title = cleanHTML(title)
+				if title != "" && !seen[title] {
+					seen[title] = true
+					articles = append(articles, Article{Title: title, URL: url})
+				}
 			}
 		}
 	}

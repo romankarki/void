@@ -1,7 +1,10 @@
 package ronb
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 	"syscall"
@@ -130,7 +133,7 @@ func RunTUI(articles []Article) int {
 		if view == "list" {
 			renderList(articles, selected, page)
 		} else {
-			renderDetail(articles[selected].Title, content, selected, len(articles), page)
+			renderDetail(articles[selected].Title, content, selected, len(articles), articles[selected].Image)
 		}
 
 		key, ok := readKey()
@@ -254,13 +257,18 @@ func renderList(articles []Article, selected int, page int) {
 	}
 }
 
-func renderDetail(title, content string, idx, total int, page int) {
+func renderDetail(title, content string, idx, total int, imageURL string) {
 	clearScreen()
 
-	fmt.Printf("\n \x1b[1;36m RONB News - Article (Page %d)\x1b[0m\n", page)
+	fmt.Print("\n \x1b[1;36m RONB News - Article\x1b[0m\n")
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n")
 	fmt.Printf(" \x1b[1;33m%s\x1b[0m\n", title)
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n\n")
+
+	if imageURL != "" {
+		renderImage(imageURL)
+		fmt.Print("\n")
+	}
 
 	words := strings.Fields(content)
 	lines := []string{}
@@ -285,6 +293,29 @@ func renderDetail(title, content string, idx, total int, page int) {
 	}
 
 	fmt.Printf("\n\n \x1b[90mArticle %d of %d  ·  Enter/Back  ·  Esc×2 Exit\x1b[0m\n", idx+1, total)
+}
+
+func renderImage(url string) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	fmt.Print(" \x1b]1337;File=inline=1;width=40;height=20;preserveAspectRatio=1:")
+	encoder := base64.NewEncoder(base64.StdEncoding, os.Stdout)
+	encoder.Write(data)
+	encoder.Close()
+	fmt.Print("\x1b\\")
 }
 
 func clearScreen() {
