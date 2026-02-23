@@ -1,10 +1,7 @@
 package ronb
 
 import (
-	"encoding/base64"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
 	"syscall"
@@ -126,6 +123,7 @@ func RunTUI(articles []Article) int {
 	page := 1
 	view := "list"
 	var content string
+	var imageURL string
 	var err error
 	escCount := 0
 
@@ -133,7 +131,7 @@ func RunTUI(articles []Article) int {
 		if view == "list" {
 			renderList(articles, selected, page)
 		} else {
-			renderDetail(articles[selected].Title, content, selected, len(articles), articles[selected].Image)
+			renderDetail(articles[selected].Title, content, selected, len(articles), imageURL)
 		}
 
 		key, ok := readKey()
@@ -157,9 +155,10 @@ func RunTUI(articles []Article) int {
 				fmt.Print("\x1b[?25l")
 				fmt.Print("\x1b[2J\x1b[H")
 				fmt.Println(" Loading article...")
-				content, err = FetchArticleContent(articles[selected].URL)
+				content, imageURL, err = FetchArticleContent(articles[selected].URL)
 				if err != nil {
 					content = "Failed to load: " + err.Error()
+					imageURL = ""
 				}
 				view = "detail"
 				escCount = 0
@@ -296,26 +295,16 @@ func renderDetail(title, content string, idx, total int, imageURL string) {
 }
 
 func renderImage(url string) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
+	if url == "" {
 		return
 	}
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	fmt.Print(" \x1b]1337;File=inline=1;width=40;height=20;preserveAspectRatio=1:")
-	encoder := base64.NewEncoder(base64.StdEncoding, os.Stdout)
-	encoder.Write(data)
-	encoder.Close()
-	fmt.Print("\x1b\\")
+	fmt.Print(" \x1b[90m┌────────────────────────────────────────┐\x1b[0m\n")
+	fmt.Print(" \x1b[90m│\x1b[0m  \x1b[33m📰 Article Image\x1b[0m                      \x1b[90m│\x1b[0m\n")
+	fmt.Print(" \x1b[90m│\x1b[0m                                        \x1b[90m│\x1b[0m\n")
+	fmt.Print(" \x1b[90m│\x1b[0m  \x1b[36m🖼 View in browser for image\x1b[0m          \x1b[90m│\x1b[0m\n")
+	fmt.Print(" \x1b[90m│\x1b[0m                                        \x1b[90m│\x1b[0m\n")
+	fmt.Print(" \x1b[90m└────────────────────────────────────────┘\x1b[0m\n")
 }
 
 func clearScreen() {

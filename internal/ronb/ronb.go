@@ -41,23 +41,41 @@ func FetchNews(page int) ([]Article, error) {
 	return parseArticles(string(body)), nil
 }
 
-func FetchArticleContent(url string) (string, error) {
+func FetchArticleContent(url string) (string, string, error) {
 	resp, err := httpClient.Get(url)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch: %w", err)
+		return "", "", fmt.Errorf("failed to fetch: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("server returned %d", resp.StatusCode)
+		return "", "", fmt.Errorf("server returned %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("read response: %w", err)
+		return "", "", fmt.Errorf("read response: %w", err)
 	}
 
-	return parseArticleContent(string(body)), nil
+	html := string(body)
+	image := extractArticleImage(html)
+	return parseArticleContent(html), image, nil
+}
+
+func extractArticleImage(html string) string {
+	imgRegex := regexp.MustCompile(`<img[^>]+class="[^"]*wp-image[^"]*"[^>]+src="([^"]+)"`)
+	matches := imgRegex.FindStringSubmatch(html)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+
+	fallbackRegex := regexp.MustCompile(`<img[^>]+src="([^"]+)"[^>]*class="[^"]*`)
+	matches = fallbackRegex.FindStringSubmatch(html)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+
+	return ""
 }
 
 func parseArticles(html string) []Article {
