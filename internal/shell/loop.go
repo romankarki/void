@@ -53,7 +53,8 @@ func (a *App) Run() error {
 			continue
 		}
 		if line == "exit" {
-			return a.history.Save()
+			_ = a.history.Save()
+			return nil
 		}
 		if strings.HasPrefix(line, "void ") {
 			a.lastCode = a.runMeta(line)
@@ -90,7 +91,7 @@ func (a *App) expandAlias(line string) string {
 func (a *App) runMeta(line string) int {
 	fields := strings.Fields(line)
 	if len(fields) < 2 {
-		a.reportError("void commands: complete, history, reload, copy-error, cp err")
+		a.reportError("void commands: history, complete, reload, copy-error, cp, stocks, ronb, bench")
 		return 1
 	}
 	switch fields[1] {
@@ -132,9 +133,30 @@ func (a *App) runMeta(line string) int {
 		a.reportError("usage: void cp <err|error>")
 		return 1
 	default:
-		a.reportError("unknown void command")
+		return a.runVoidSubcommand(fields[1:])
+	}
+}
+
+func (a *App) runVoidSubcommand(args []string) int {
+	voidExe, err := os.Executable()
+	if err != nil {
+		a.reportError(fmt.Sprintf("cannot find void executable: %v", err))
 		return 1
 	}
+
+	cmd := exec.Command(voidExe, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode()
+		}
+		a.reportError(fmt.Sprintf("void %s: %v", strings.Join(args, " "), err))
+		return 1
+	}
+	return 0
 }
 
 func (a *App) copyLastError(commandName string) int {
@@ -162,7 +184,9 @@ func (a *App) runCommand(line string) int {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+
+	err := cmd.Run()
+	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			a.recordError(fmt.Sprintf("command %q exited with code %d", line, exitErr.ExitCode()))
 			a.printCopyErrorHint()
