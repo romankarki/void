@@ -16,8 +16,12 @@ type Article struct {
 
 var httpClient = &http.Client{Timeout: 15 * time.Second}
 
-func FetchNews() ([]Article, error) {
+func FetchNews(page int) ([]Article, error) {
 	url := "https://www.ronbpost.com/category/news/"
+	if page > 1 {
+		url = fmt.Sprintf("https://www.ronbpost.com/category/news/page/%d/", page)
+	}
+
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch: %w", err)

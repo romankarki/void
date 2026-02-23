@@ -41,6 +41,10 @@ func main() {
 			os.Exit(runBench(os.Args[2:]))
 		case "stocks":
 			os.Exit(runStocks(os.Args[2:]))
+		case "gold":
+			os.Exit(runGold(os.Args[2:]))
+		case "exg":
+			os.Exit(runExchange(os.Args[2:]))
 		case "ronb":
 			os.Exit(runRonb())
 		}
@@ -220,10 +224,58 @@ func runStocks(args []string) int {
 
 func runRonb() int {
 	fmt.Println("\n Fetching news from RONB...")
-	articles, err := ronb.FetchNews()
+	articles, err := ronb.FetchNews(1)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "void: %v\n", err)
 		return 1
 	}
 	return ronb.RunTUI(articles)
+}
+
+func runGold(args []string) int {
+	metal := "gold"
+	if len(args) > 0 {
+		metal = args[0]
+	}
+
+	cfg, _, err := config.Load("")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: failed to load config: %v\n", err)
+		return 1
+	}
+
+	fmt.Printf("\n Fetching %s price...\n", metal)
+	price, err := stocks.FetchGoldPrice(cfg.API.AlphaVantage, metal)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: %v\n", err)
+		return 1
+	}
+	fmt.Println(stocks.FormatGoldPrice(price, metal))
+	return 0
+}
+
+func runExchange(args []string) int {
+	if len(args) < 2 {
+		fmt.Fprintln(os.Stderr, "usage: void exg <from> <to>")
+		fmt.Fprintln(os.Stderr, "example: void exg USD NPR")
+		return 1
+	}
+
+	from := args[0]
+	to := args[1]
+
+	cfg, _, err := config.Load("")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: failed to load config: %v\n", err)
+		return 1
+	}
+
+	fmt.Printf("\n Fetching exchange rate %s → %s...\n", from, to)
+	rate, err := stocks.FetchExchangeRate(cfg.API.AlphaVantage, from, to)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: %v\n", err)
+		return 1
+	}
+	fmt.Println(stocks.FormatExchangeRate(rate))
+	return 0
 }

@@ -2,6 +2,7 @@ package ronb
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -12,7 +13,6 @@ var kernel32 = syscall.NewLazyDLL("kernel32.dll")
 var procGetStdHandle = kernel32.NewProc("GetStdHandle")
 var procSetConsoleMode = kernel32.NewProc("SetConsoleMode")
 var procGetConsoleMode = kernel32.NewProc("GetConsoleMode")
-var procPeekConsoleInput = kernel32.NewProc("PeekConsoleInputW")
 var procReadConsoleInput = kernel32.NewProc("ReadConsoleInputW")
 var procFlushConsoleInputBuffer = kernel32.NewProc("FlushConsoleInputBuffer")
 
@@ -20,10 +20,7 @@ const (
 	STD_INPUT_HANDLE       = 0xFFFFFFF6
 	ENABLE_ECHO_INPUT      = 0x0004
 	ENABLE_LINE_INPUT      = 0x0002
-	ENABLE_PROCESSED_INPUT = 0x0001
 	KEY_EVENT              = 0x0001
-	ENABLE_WINDOW_INPUT    = 0x0008
-	ENABLE_MOUSE_INPUT     = 0x0010
 	ENABLE_EXTENDED_FLAGS  = 0x0080
 	ENABLE_QUICK_EDIT_MODE = 0x0040
 )
@@ -59,13 +56,9 @@ const (
 	KEY_DOWN  = 0x28
 	KEY_ENTER = 0x0D
 	KEY_ESC   = 0x1B
+	KEY_LEFT  = 0x25
+	KEY_RIGHT = 0x27
 )
-
-type INPUT_RECORD struct {
-	EventType uint16
-	_         uint16
-	Event     [16]byte
-}
 
 func readKey() (string, bool) {
 	var buf [20]byte
@@ -105,6 +98,10 @@ func readKey() (string, bool) {
 			return "enter", true
 		case KEY_ESC:
 			return "esc", true
+		case KEY_LEFT:
+			return "left", true
+		case KEY_RIGHT:
+			return "right", true
 		}
 
 		if ch >= 32 && ch < 127 {
@@ -123,6 +120,7 @@ func RunTUI(articles []Article) int {
 	defer restoreConsole()
 
 	selected := 0
+	page := 1
 	view := "list"
 	var content string
 	var err error
@@ -130,9 +128,9 @@ func RunTUI(articles []Article) int {
 
 	for {
 		if view == "list" {
-			renderList(articles, selected)
+			renderList(articles, selected, page)
 		} else {
-			renderDetail(articles[selected].Title, content, selected, len(articles))
+			renderDetail(articles[selected].Title, content, selected, len(articles), page)
 		}
 
 		key, ok := readKey()
@@ -161,6 +159,34 @@ func RunTUI(articles []Article) int {
 					content = "Failed to load: " + err.Error()
 				}
 				view = "detail"
+				escCount = 0
+			case "left", "n":
+				clearScreen()
+				fmt.Print("\x1b[?25h")
+				fmt.Printf("\n Fetching page %d...\n", page+1)
+				page++
+				newArticles, ferr := FetchNews(page)
+				if ferr != nil || len(newArticles) == 0 {
+					page--
+					fmt.Fprintf(os.Stderr, " No more pages or failed to fetch\n")
+					articles, _ = FetchNews(page)
+				} else {
+					articles = newArticles
+					selected = 0
+				}
+				escCount = 0
+			case "right", "p":
+				if page > 1 {
+					clearScreen()
+					fmt.Print("\x1b[?25h")
+					page--
+					fmt.Printf("\n Fetching page %d...\n", page)
+					articles, err = FetchNews(page)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, " Failed to fetch: %v\n", err)
+					}
+					selected = 0
+				}
 				escCount = 0
 			case "esc":
 				escCount++
@@ -194,13 +220,13 @@ func RunTUI(articles []Article) int {
 	}
 }
 
-func renderList(articles []Article, selected int) {
+func renderList(articles []Article, selected int, page int) {
 	clearScreen()
 	fmt.Print("\x1b[?25l")
 
-	fmt.Print("\n \x1b[1;36m RONB News - Latest Updates\x1b[0m\n")
+	fmt.Printf("\n \x1b[1;36m RONB News - Page %d\x1b[0m\n", page)
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n")
-	fmt.Print(" \x1b[90m↑/↓ Navigate  ·  Enter View  ·  Esc×2 Exit\x1b[0m\n")
+	fmt.Print(" \x1b[90m↑/↓ Navigate  ·  Enter View  ·  ←/N Next  ·  →/P Prev  ·  Esc×2 Exit\x1b[0m\n")
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n\n")
 
 	maxShow := 15
@@ -228,10 +254,10 @@ func renderList(articles []Article, selected int) {
 	}
 }
 
-func renderDetail(title, content string, idx, total int) {
+func renderDetail(title, content string, idx, total int, page int) {
 	clearScreen()
 
-	fmt.Print("\n \x1b[1;36m RONB News - Article\x1b[0m\n")
+	fmt.Printf("\n \x1b[1;36m RONB News - Article (Page %d)\x1b[0m\n", page)
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n")
 	fmt.Printf(" \x1b[1;33m%s\x1b[0m\n", title)
 	fmt.Print(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n\n")
