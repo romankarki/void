@@ -17,6 +17,7 @@ type Config struct {
 	Prompt  PromptConfig
 	History HistoryConfig
 	Alias   map[string]string
+	API     APIConfig
 }
 
 type ShellConfig struct {
@@ -32,6 +33,10 @@ type PromptConfig struct {
 type HistoryConfig struct {
 	Path    string
 	MaxSize int
+}
+
+type APIConfig struct {
+	AlphaVantage string
 }
 
 func Default() Config {
@@ -170,6 +175,11 @@ func decodeSimpleTOML(path string, cfg *Config) error {
 			cfg.Alias[key] = strings.Trim(value, "\"")
 		case "palette":
 			cfg.Palette[key] = strings.Trim(value, "\"")
+		case "api":
+			switch key {
+			case "alpha_vantage":
+				cfg.API.AlphaVantage = value
+			}
 		}
 	}
 	return s.Err()

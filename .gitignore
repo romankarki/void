@@ -26,6 +26,10 @@ coverage.out
 .env
 .env.*
 
+# API keys (never commit these)
+config.local.toml
+*.apikey
+
 # Editor / OS artifacts
 .DS_Store
 Thumbs.db

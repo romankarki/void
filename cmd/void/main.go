@@ -13,6 +13,7 @@ import (
 	"github.com/void-shell/void/internal/integration"
 	"github.com/void-shell/void/internal/prompt"
 	"github.com/void-shell/void/internal/shell"
+	"github.com/void-shell/void/internal/stocks"
 	"github.com/void-shell/void/internal/theme"
 )
 
@@ -37,6 +38,8 @@ func main() {
 			os.Exit(runCopy([]string{"error"}))
 		case "bench", "b":
 			os.Exit(runBench(os.Args[2:]))
+		case "stocks":
+			os.Exit(runStocks(os.Args[2:]))
 		}
 	}
 
@@ -182,4 +185,32 @@ func runBench(args []string) int {
 		return 1
 	}
 	return beautify.Run(args[0], args[1:])
+}
+
+func runStocks(args []string) int {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: void stocks <gainers|losers>")
+		return 1
+	}
+
+	cfg, _, err := config.Load("")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: failed to load config: %v\n", err)
+		return 1
+	}
+
+	subCmd := strings.ToLower(strings.TrimSpace(args[0]))
+	switch subCmd {
+	case "gainers", "g":
+		gainers, err := stocks.FetchGainers(cfg.API.AlphaVantage)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "void: %v\n", err)
+			return 1
+		}
+		fmt.Println(stocks.FormatTable(gainers))
+		return 0
+	default:
+		fmt.Fprintln(os.Stderr, "usage: void stocks <gainers|losers>")
+		return 1
+	}
 }
