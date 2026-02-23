@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,9 @@ import (
 
 	"github.com/void-shell/void/internal/config"
 )
+
+//go:embed presets/*.toml
+var presetFS embed.FS
 
 var presetMap = map[string]string{
 	"minimal":   "minimal.toml",
@@ -58,6 +62,21 @@ func resolvePresetPath(file string) (string, error) {
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}
+	}
+
+	embeddedPath := "presets/" + file
+	data, err := presetFS.ReadFile(embeddedPath)
+	if err == nil {
+		tmpFile, err := os.CreateTemp("", "void-preset-*.toml")
+		if err != nil {
+			return "", fmt.Errorf("create temp file for embedded preset: %w", err)
+		}
+		if _, err := tmpFile.Write(data); err != nil {
+			tmpFile.Close()
+			return "", fmt.Errorf("write embedded preset to temp: %w", err)
+		}
+		tmpFile.Close()
+		return tmpFile.Name(), nil
 	}
 
 	return "", fmt.Errorf("preset file %q not found (looked in: %s)", file, strings.Join(candidates, ", "))

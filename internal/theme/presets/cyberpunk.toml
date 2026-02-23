@@ -1,0 +1,26 @@
+[prompt]
+symbol = "▶"
+segments = ["user", "git", "path", "exit_code", "time"]
+
+[palette]
+user_fg = "#ffffff"
+user_bg = "#1a1a2e"
+
+git_fg = "#ffffff"
+git_bg = "#00963b"
+
+path_fg = "#c0c0c0"
+path_bg_1 = "#16213e"
+path_bg_2 = "#1a1a2e"
+path_bg_3 = "#0f3460"
+path_bg_4 = "#16213e"
+path_bg_5 = "#1a1a2e"
+path_bg_6 = "#0f3460"
+
+exit_code_fg = "#ff6b6b"
+exit_code_bg = "#2d132c"
+
+time_fg = "#8892b0"
+time_bg = "#1a1a2e"
+
+symbol_fg = "#64ffda"

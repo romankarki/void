@@ -36,7 +36,7 @@ type HistoryConfig struct {
 
 func Default() Config {
 	return Config{
-		Preset:  "cyberpunk",
+		Preset:  "hacker",
 		Shell:   ShellConfig{Executable: defaultShell(), Args: []string{}},
 		Prompt:  PromptConfig{Symbol: ">", Segments: []string{"user", "path", "time"}},
 		History: HistoryConfig{Path: "~/.void/history", MaxSize: 5000},
