@@ -92,7 +92,7 @@ func parseArticles(html string) []Article {
 }
 
 func parseArticleContent(html string) string {
-	contentRegex := regexp.MustCompile(`<div class="uk-card-body uk-card-center">[\s\S]*?<p>([\s\S]*?)</p>`)
+	contentRegex := regexp.MustCompile(`<div class="post-entry">([\s\S]*?)</div>`)
 	matches := contentRegex.FindStringSubmatch(html)
 	if len(matches) > 1 {
 		content := matches[1]
@@ -101,8 +101,24 @@ func parseArticleContent(html string) string {
 		content = strings.ReplaceAll(content, "&hellip;", "...")
 		content = strings.ReplaceAll(content, "&#039;", "'")
 		content = strings.ReplaceAll(content, "&quot;", "\"")
+		content = strings.ReplaceAll(content, "\n\n", "\n")
 		content = strings.TrimSpace(content)
 		return content
+	}
+
+	fallbackRegex := regexp.MustCompile(`<p>([^<]+)</p>`)
+	allMatches := fallbackRegex.FindAllStringSubmatch(html, -1)
+	var paragraphs []string
+	for _, m := range allMatches {
+		if len(m) > 1 && len(m[1]) > 50 {
+			text := m[1]
+			text = strings.ReplaceAll(text, "&nbsp;", " ")
+			text = strings.ReplaceAll(text, "&#039;", "'")
+			paragraphs = append(paragraphs, text)
+		}
+	}
+	if len(paragraphs) > 0 {
+		return strings.Join(paragraphs, "\n\n")
 	}
 
 	return "Could not extract article content."
