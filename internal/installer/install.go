@@ -85,6 +85,11 @@ func Install(opts InstallOptions, stdout io.Writer, stdin io.Reader) error {
 		fmt.Fprint(stdout, " (created)")
 	}
 	fmt.Fprintln(stdout)
+	fmt.Fprintln(stdout, "")
+	fmt.Fprintln(stdout, "To use void immediately, run:")
+	fmt.Fprintf(stdout, "  . $PROFILE")
+	fmt.Fprintln(stdout, "")
+	fmt.Fprintln(stdout, "Or open a new terminal window.")
 	return nil
 }
 

@@ -28,6 +28,11 @@ func powershellScript() string {
 [Console]::OutputEncoding = $utf8NoBom
 $OutputEncoding = $utf8NoBom
 
+$__voidBinPath = Join-Path $env:LOCALAPPDATA "Void\bin"
+if (($env:PATH -split ';' | Where-Object { $_ -ieq $__voidBinPath }).Count -eq 0) {
+    $env:PATH = $__voidBinPath + ';' + $env:PATH
+}
+
 function __void_render_prompt([int]$code, [string]$workdir) {
     try {
         $psi = New-Object System.Diagnostics.ProcessStartInfo
