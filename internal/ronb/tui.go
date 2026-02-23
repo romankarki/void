@@ -8,84 +8,88 @@ import (
 )
 
 var kernel32 = syscall.NewLazyDLL("kernel32.dll")
-var getStdHandle = kernel32.NewProc("GetStdHandle")
-var setConsoleMode = kernel32.NewProc("SetConsoleMode")
-var getConsoleMode = kernel32.NewProc("GetConsoleMode")
-var readConsoleInput = kernel32.NewProc("ReadConsoleInputW")
+
+var procGetStdHandle = kernel32.NewProc("GetStdHandle")
+var procSetConsoleMode = kernel32.NewProc("SetConsoleMode")
+var procGetConsoleMode = kernel32.NewProc("GetConsoleMode")
+var procReadConsoleInputW = kernel32.NewProc("ReadConsoleInputW")
 
 const (
-	STD_INPUT_HANDLE  = ^uint32(0) - 10
-	ENABLE_ECHO_INPUT = uint32(0x0004)
-	ENABLE_LINE_INPUT = uint32(0x0002)
-	ENABLE_PROCESSED  = uint32(0x0001)
+	STD_INPUT_HANDLE  = 0xFFFFFFF6
+	ENABLE_ECHO_INPUT = 0x0004
+	ENABLE_LINE_INPUT = 0x0002
+	KEY_EVENT         = 0x0001
 )
-
-type inputRecord struct {
-	eventType uint16
-	padding   [2]byte
-	keyEvent  keyEventRecord
-}
-
-type keyEventRecord struct {
-	bKeyDown          int32
-	wRepeatCount      uint16
-	wVirtualKeyCode   uint16
-	wVirtualScanCode  uint16
-	unicodeChar       uint16
-	dwControlKeyState uint32
-}
 
 var stdinHandle syscall.Handle
 var oldMode uint32
 
 func initConsole() error {
-	h, _, _ := getStdHandle.Call(uintptr(STD_INPUT_HANDLE))
-	stdinHandle = syscall.Handle(h)
+	r, _, _ := procGetStdHandle.Call(uintptr(STD_INPUT_HANDLE))
+	stdinHandle = syscall.Handle(r)
 
 	var mode uint32
-	_, _, _ = getConsoleMode.Call(uintptr(stdinHandle), uintptr(unsafe.Pointer(&mode)))
+	procGetConsoleMode.Call(uintptr(stdinHandle), uintptr(unsafe.Pointer(&mode)))
 	oldMode = mode
 
-	newMode := mode & ^(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT)
-	_, _, _ = setConsoleMode.Call(uintptr(stdinHandle), uintptr(newMode))
+	newMode := mode &^ (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT)
+	procSetConsoleMode.Call(uintptr(stdinHandle), uintptr(newMode))
 
 	return nil
 }
 
 func restoreConsole() {
-	_, _, _ = setConsoleMode.Call(uintptr(stdinHandle), uintptr(oldMode))
+	procSetConsoleMode.Call(uintptr(stdinHandle), uintptr(oldMode))
 }
 
+const (
+	KEY_UP    = 0x26
+	KEY_DOWN  = 0x28
+	KEY_ENTER = 0x0D
+	KEY_ESC   = 0x1B
+)
+
 func readKey() (string, bool) {
-	var ir inputRecord
+	var eventType uint16
+	var _ [2]byte
+	var keyDown uint32
+	var _ [2]uint16
+	var vk uint16
+	var _ [2]uint16
+	var char uint16
+	var _ [4]byte
+
 	var numRead uint32
 
 	for {
-		_, _, _ = readConsoleInput.Call(
+		procReadConsoleInputW.Call(
 			uintptr(stdinHandle),
-			uintptr(unsafe.Pointer(&ir)),
+			uintptr(unsafe.Pointer(&eventType)),
 			uintptr(1),
 			uintptr(unsafe.Pointer(&numRead)),
 		)
 
-		if ir.eventType == 1 && ir.keyEvent.bKeyDown != 0 {
-			vk := ir.keyEvent.wVirtualKeyCode
-			ch := ir.keyEvent.unicodeChar
+		if eventType != KEY_EVENT {
+			continue
+		}
 
-			switch vk {
-			case 0x26:
-				return "up", true
-			case 0x28:
-				return "down", true
-			case 0x0D:
-				return "enter", true
-			case 0x1B:
-				return "esc", true
-			}
+		if keyDown == 0 {
+			continue
+		}
 
-			if ch >= 32 && ch < 127 {
-				return string(rune(ch)), true
-			}
+		switch vk {
+		case KEY_UP:
+			return "up", true
+		case KEY_DOWN:
+			return "down", true
+		case KEY_ENTER:
+			return "enter", true
+		case KEY_ESC:
+			return "esc", true
+		}
+
+		if char >= 32 && char < 127 {
+			return string(rune(char)), true
 		}
 	}
 }
