@@ -424,7 +424,7 @@ func confirm(stdin io.Reader, stdout io.Writer, question string, defaultYes bool
 }
 
 const defaultConfigTOML = `# Void configuration
-preset = "hacker"
+preset = "cyberpunk"
 
 [shell]
 executable = "cmd.exe"

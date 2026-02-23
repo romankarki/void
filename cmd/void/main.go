@@ -35,7 +35,7 @@ func main() {
 			os.Exit(runCopy(os.Args[2:]))
 		case "copy-error":
 			os.Exit(runCopy([]string{"error"}))
-		case "beautify":
+		case "beautify", "b":
 			os.Exit(runBeautify(os.Args[2:]))
 		}
 	}
