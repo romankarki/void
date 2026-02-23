@@ -12,6 +12,7 @@ import (
 	"github.com/void-shell/void/internal/installer"
 	"github.com/void-shell/void/internal/integration"
 	"github.com/void-shell/void/internal/prompt"
+	"github.com/void-shell/void/internal/ronb"
 	"github.com/void-shell/void/internal/shell"
 	"github.com/void-shell/void/internal/stocks"
 	"github.com/void-shell/void/internal/theme"
@@ -40,6 +41,8 @@ func main() {
 			os.Exit(runBench(os.Args[2:]))
 		case "stocks":
 			os.Exit(runStocks(os.Args[2:]))
+		case "ronb":
+			os.Exit(runRonb())
 		}
 	}
 
@@ -213,4 +216,14 @@ func runStocks(args []string) int {
 		fmt.Fprintln(os.Stderr, "usage: void stocks <gainers|losers>")
 		return 1
 	}
+}
+
+func runRonb() int {
+	fmt.Println("\n Fetching news from RONB...")
+	articles, err := ronb.FetchNews()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: %v\n", err)
+		return 1
+	}
+	return ronb.RunTUI(articles)
 }
