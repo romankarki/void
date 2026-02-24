@@ -286,7 +286,7 @@ func runExchange(args []string) int {
 
 func runWhatsApp() int {
 	fmt.Println("\n \x1b[1;36m WhatsApp CLI\x1b[0m")
-	fmt.Println(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m")
+	fmt.Println(" \x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m")
 	fmt.Println(" \x1b[90mConnecting to WhatsApp...\x1b[0m")
 
 	client, err := whatsapp.NewClient()
@@ -296,10 +296,14 @@ func runWhatsApp() int {
 	}
 
 	connected := make(chan bool, 1)
+	var qrPrinted bool
 
 	err = client.Connect(
 		func(qr string) {
-			whatsapp.PrintQR(qr)
+			if !qrPrinted {
+				whatsapp.PrintQR(qr)
+				qrPrinted = true
+			}
 		},
 		func() {
 			connected <- true
@@ -312,16 +316,11 @@ func runWhatsApp() int {
 
 	select {
 	case <-connected:
-		fmt.Print("\x1b[2J\x1b[H")
-		fmt.Println("\n \x1b[1;32m✓ Connected to WhatsApp!\x1b[0m")
-		fmt.Println(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m")
-		fmt.Println(" \x1b[90mPress Ctrl+C to disconnect\x1b[0m")
-		fmt.Println(" \x1b[90mMessages will appear here in real-time\x1b[0m")
-	case <-time.After(60 * time.Second):
-		fmt.Fprintf(os.Stderr, "void: connection timeout\n")
+		ui := whatsapp.NewTerminalUI(client)
+		return ui.Run()
+	case <-time.After(120 * time.Second):
+		fmt.Fprintf(os.Stderr, "void: connection timeout - please scan QR code\n")
 		client.Disconnect()
 		return 1
 	}
-
-	select {}
 }
