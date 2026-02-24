@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/void-shell/void/internal/beautify"
 	"github.com/void-shell/void/internal/config"
@@ -16,6 +17,7 @@ import (
 	"github.com/void-shell/void/internal/shell"
 	"github.com/void-shell/void/internal/stocks"
 	"github.com/void-shell/void/internal/theme"
+	"github.com/void-shell/void/internal/whatsapp"
 )
 
 var copyTextToClipboard = shell.CopyTextToClipboard
@@ -47,6 +49,8 @@ func main() {
 			os.Exit(runExchange(os.Args[2:]))
 		case "ronb":
 			os.Exit(runRonb())
+		case "wa", "whatsapp":
+			os.Exit(runWhatsApp())
 		}
 	}
 
@@ -278,4 +282,46 @@ func runExchange(args []string) int {
 	}
 	fmt.Println(stocks.FormatExchangeRate(rate))
 	return 0
+}
+
+func runWhatsApp() int {
+	fmt.Println("\n \x1b[1;36m WhatsApp CLI\x1b[0m")
+	fmt.Println(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m")
+	fmt.Println(" \x1b[90mConnecting to WhatsApp...\x1b[0m")
+
+	client, err := whatsapp.NewClient()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: failed to initialize WhatsApp: %v\n", err)
+		return 1
+	}
+
+	connected := make(chan bool, 1)
+
+	err = client.Connect(
+		func(qr string) {
+			whatsapp.PrintQR(qr)
+		},
+		func() {
+			connected <- true
+		},
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "void: failed to connect: %v\n", err)
+		return 1
+	}
+
+	select {
+	case <-connected:
+		fmt.Print("\x1b[2J\x1b[H")
+		fmt.Println("\n \x1b[1;32m✓ Connected to WhatsApp!\x1b[0m")
+		fmt.Println(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m")
+		fmt.Println(" \x1b[90mPress Ctrl+C to disconnect\x1b[0m")
+		fmt.Println(" \x1b[90mMessages will appear here in real-time\x1b[0m")
+	case <-time.After(60 * time.Second):
+		fmt.Fprintf(os.Stderr, "void: connection timeout\n")
+		client.Disconnect()
+		return 1
+	}
+
+	select {}
 }
