@@ -237,6 +237,19 @@ func runRonb() int {
 }
 
 func runGold(args []string) int {
+	for _, arg := range args {
+		if arg == "--nepal" || arg == "-n" {
+			fmt.Println("\n Fetching Nepal gold/silver prices...")
+			price, err := stocks.FetchNepalGoldPrice()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "void: %v\n", err)
+				return 1
+			}
+			fmt.Println(stocks.FormatNepalGoldPrice(price))
+			return 0
+		}
+	}
+
 	metal := "gold"
 	if len(args) > 0 {
 		metal = args[0]

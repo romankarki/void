@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -35,6 +36,16 @@ type GoldPrice struct {
 	Change     string
 	ChangePct  string
 	LastUpdate string
+}
+
+type NepalGoldPrice struct {
+	GoldHallmarkTola string
+	GoldTajabiTola   string
+	SilverTola       string
+	GoldHallmark10g  string
+	GoldTajabi10g    string
+	Silver10g        string
+	LastUpdate       string
 }
 
 type goldResponse struct {
@@ -155,6 +166,68 @@ func FetchGoldPrice(apiKey, metal string) (*GoldPrice, error) {
 	}, nil
 }
 
+func FetchNepalGoldPrice() (*NepalGoldPrice, error) {
+	url := "https://www.hamropatro.com/gold"
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("server returned %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	html := string(body)
+	return parseNepalGold(html), nil
+}
+
+func parseNepalGold(html string) *NepalGoldPrice {
+	result := &NepalGoldPrice{}
+
+	re := regexp.MustCompile(`Gold Hallmark - tola[^N]*Nrs\.\s*([\d,]+\.?\d*)`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		result.GoldHallmarkTola = strings.ReplaceAll(m[1], ",", "")
+	}
+
+	re = regexp.MustCompile(`Gold Tajabi - tola[^N]*Nrs\.\s*([\d,]+\.?\d*)`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		result.GoldTajabiTola = strings.ReplaceAll(m[1], ",", "")
+	}
+
+	re = regexp.MustCompile(`Silver - tola[^N]*Nrs\.\s*([\d,]+\.?\d*)`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		result.SilverTola = strings.ReplaceAll(m[1], ",", "")
+	}
+
+	re = regexp.MustCompile(`Gold Hallmark - 10g[^N]*Nrs\.\s*([\d,]+\.?\d*)`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		result.GoldHallmark10g = strings.ReplaceAll(m[1], ",", "")
+	}
+
+	re = regexp.MustCompile(`Gold Tajabi - 10g[^N]*Nrs\.\s*([\d,]+\.?\d*)`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		result.GoldTajabi10g = strings.ReplaceAll(m[1], ",", "")
+	}
+
+	re = regexp.MustCompile(`Silver - 10g[^N]*Nrs\.\s*([\d,]+\.?\d*)`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		result.Silver10g = strings.ReplaceAll(m[1], ",", "")
+	}
+
+	re = regexp.MustCompile(`Last Updated:\s*([^<]+)`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		result.LastUpdate = strings.TrimSpace(m[1])
+	}
+
+	return result
+}
+
 func FetchExchangeRate(apiKey, from, to string) (*ExchangeRate, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key not configured. Add [api] section with alpha_vantage key to config")
@@ -260,6 +333,20 @@ func FormatExchangeRate(ex *ExchangeRate) string {
 	sb.WriteString(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n")
 	sb.WriteString(fmt.Sprintf(" \x1b[1;32mRate:         %s\x1b[0m\n", ex.Rate))
 	sb.WriteString(fmt.Sprintf(" \x1b[90mLast Update:  %s\x1b[0m\n", ex.LastUpdate))
+	return sb.String()
+}
+
+func FormatNepalGoldPrice(p *NepalGoldPrice) string {
+	var sb strings.Builder
+	sb.WriteString("\n NEPAL GOLD/SILVER PRICES\n")
+	sb.WriteString(" \x1b[1;36m─────────────────────────────────────────────────────────\x1b[0m\n")
+	sb.WriteString(" \x1b[1;33m                    Tola        10g\x1b[0m\n")
+	sb.WriteString(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n")
+	sb.WriteString(fmt.Sprintf(" \x1b[1mGold Hallmark\x1b[0m  Rs. %-10s  Rs. %s\n", p.GoldHallmarkTola, p.GoldHallmark10g))
+	sb.WriteString(fmt.Sprintf(" \x1b[1mGold Tajabi\x1b[0m    Rs. %-10s  Rs. %s\n", p.GoldTajabiTola, p.GoldTajabi10g))
+	sb.WriteString(fmt.Sprintf(" \x1b[1mSilver\x1b[0m         Rs. %-10s  Rs. %s\n", p.SilverTola, p.Silver10g))
+	sb.WriteString(" \x1b[36m─────────────────────────────────────────────────────────\x1b[0m\n")
+	sb.WriteString(fmt.Sprintf(" \x1b[90mLast Update: %s\x1b[0m\n", p.LastUpdate))
 	return sb.String()
 }
 
