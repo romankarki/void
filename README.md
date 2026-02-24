@@ -2,7 +2,102 @@
 
 Void is a configurable shell wrapper inspired by the requirements in `REQUIREMENTS.md`. It adds a customizable prompt, alias expansion, persistent history, theme presets, and basic command completion helpers while delegating command execution to your existing shell.
 
-## Current MVP Features
+## CLI Commands
+
+### Gold & Silver Prices
+
+```bash
+# International gold spot price (Alpha Vantage API)
+void gold
+
+# International silver spot price
+void gold silver
+
+# Nepal gold/silver prices in NPR (from hamropatro.com)
+void gold --nepal
+void gold -n
+```
+
+Output for `void gold --nepal`:
+```
+ NEPAL GOLD/SILVER PRICES
+ ─────────────────────────────────────────────────────────
+                     Tola        10g
+ ─────────────────────────────────────────────────────────
+ Gold Hallmark  Rs. 313500.00   Rs. 268775.00
+ Gold Tajabi    Rs. 0.00        Rs. 0.00
+ Silver         Rs. 5595.00     Rs. 4797.00
+ ─────────────────────────────────────────────────────────
+ Last Update: Monday, February 23, 2026 - 10:45 AM
+```
+
+### Stock Market
+
+```bash
+# Top gainers (US market)
+void stocks gainers
+void stocks g
+```
+
+### Currency Exchange
+
+```bash
+# Exchange rate between two currencies
+void exg USD NPR
+void exg EUR USD
+```
+
+### Nepal News (RONB)
+
+```bash
+# Read latest news from RONB (Nepal's popular news channel)
+void ronb
+```
+
+Navigation in news TUI:
+- `→` or `N` - Next page
+- `←` or `P` - Previous page
+- `Q` or `ESC` - Quit
+
+### WhatsApp CLI
+
+```bash
+# Start WhatsApp terminal client
+void wa
+void whatsapp
+```
+
+Commands inside WhatsApp CLI:
+- `send <phone> <message>` - Send message to phone number
+- `chat <phone>` - Start a chat session
+- `msg <text>` - Send message in current chat
+- `clear` - Clear screen
+- `help` - Show available commands
+- `exit` - Quit WhatsApp CLI
+
+Phone format: country code + number (e.g., `9779800000000` for Nepal)
+
+### Beautify Output
+
+```bash
+# Run command with beautified output
+void b <command>
+void bench <command>
+
+# Example
+void b ls -la
+void bench git status
+```
+
+### Error Copy
+
+```bash
+# Copy last error to clipboard
+void cp error
+void cp err
+```
+
+## Core Features
 
 - Config-driven shell executable and prompt (`config.toml`).
 - Prompt segments: `user`, `path`, `time`, `exit_code`.
